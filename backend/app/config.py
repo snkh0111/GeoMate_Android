@@ -44,6 +44,8 @@ class Settings:
     # Embeddings
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
     EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
+    # 嵌入后端：auto（Android 自动用 light，桌面用 sentence-transformers）| light | sentence-transformers
+    EMBEDDING_BACKEND: str = os.getenv("EMBEDDING_BACKEND", "auto")
 
     # Anthropic
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")

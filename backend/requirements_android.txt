@@ -21,8 +21,9 @@ pydantic[email]>=2.10
 # LightVectorStore uses SQLite + numpy cosine similarity instead
 numpy>=1.24,<2.0
 
-# Embeddings (same as original — Chaquopy supports sentence-transformers)
-sentence-transformers>=3.0,<6.0
+# Embeddings — Android 使用纯 numpy 的 light 后端（字符 bigram 特征哈希），
+# 无需 torch / sentence-transformers / 模型下载。
+# 如需桌面端高质量语义模型，可自行安装：pip install sentence-transformers
 
 # PDF (same as original)
 pymupdf>=1.25
