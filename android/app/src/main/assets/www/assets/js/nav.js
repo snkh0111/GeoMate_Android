@@ -46,9 +46,13 @@
     return new URLSearchParams(location.search).get(key);
   }
 
-  // 路线详情跳转：从卡片提取路线名
+  // 路线详情跳转：优先用卡片 data-route-id，缺失时退回路线名
   function routeCardClick(card) {
-    // 路线名在卡片内第一个 <p> 标签
+    const id = card.getAttribute("data-route-id");
+    if (id) {
+      go("route-detail.html", { id });
+      return;
+    }
     const p = card.querySelector("p");
     const name = p ? p.textContent.trim() : "";
     go("route-detail.html", { name: name || "" });

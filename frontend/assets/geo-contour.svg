@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <!-- 地质拓扑 · 等高线纹理（算法生成风格的暖中性色版） -->
+  <rect width="800" height="600" fill="#FAF9F5"/>
+  <g fill="none" stroke-linecap="round">
+    <!-- 第一组等高线：山脊 -->
+    <path d="M-40 180 C 90 120, 190 160, 260 110 S 430 60, 520 110 S 700 130, 840 80" stroke="#E8E6DC" stroke-width="2"/>
+    <path d="M-40 230 C 90 170, 190 210, 260 160 S 430 110, 520 160 S 700 180, 840 130" stroke="#E8E6DC" stroke-width="2"/>
+    <path d="M-40 280 C 90 220, 190 260, 260 210 S 430 160, 520 210 S 700 230, 840 180" stroke="#DFDDD3" stroke-width="2"/>
+    <path d="M-40 330 C 90 270, 190 310, 260 260 S 430 210, 520 260 S 700 280, 840 230" stroke="#DFDDD3" stroke-width="2"/>
+    <path d="M-40 380 C 90 320, 190 360, 260 310 S 430 260, 520 310 S 700 330, 840 280" stroke="#D8D6CC" stroke-width="2"/>
+    <path d="M-40 430 C 90 370, 190 410, 260 360 S 430 310, 520 360 S 700 380, 840 330" stroke="#D8D6CC" stroke-width="1.5"/>
+    <!-- 第二组等高线：侵入体同心环 -->
+    <path d="M600 420 m 0 -12 a 12 12 0 1 1 -0.01 0" stroke="#C9C7BC" stroke-width="1.5"/>
+    <path d="M600 420 m 0 -30 a 30 30 0 1 1 -0.01 0" stroke="#C9C7BC" stroke-width="1.5"/>
+    <path d="M600 420 m 0 -52 a 52 52 0 1 1 -0.01 0" stroke="#BFBDb2" stroke-width="1.5"/>
+    <path d="M600 420 m 0 -76 a 76 76 0 1 1 -0.01 0" stroke="#B5B3A8" stroke-width="1.5"/>
+    <!-- 第三组等高线：沉积盆地 -->
+    <path d="M-40 520 C 120 480, 240 540, 360 500 S 560 460, 680 510 S 760 530, 840 500" stroke="#E3E1D8" stroke-width="1.5"/>
+    <path d="M-40 565 C 120 525, 240 585, 360 545 S 560 505, 680 555 S 760 575, 840 545" stroke="#E3E1D8" stroke-width="1.5"/>
+    <!-- 矿物青绿点缀：小型侵入体 -->
+    <path d="M160 90 m 0 -8 a 8 8 0 1 1 -0.01 0" stroke="#2E7D5B" stroke-width="2" opacity="0.55"/>
+    <path d="M160 90 m 0 -18 a 18 18 0 1 1 -0.01 0" stroke="#2E7D5B" stroke-width="1.5" opacity="0.4"/>
+    <path d="M470 520 m 0 -7 a 7 7 0 1 1 -0.01 0" stroke="#2E7D5B" stroke-width="2" opacity="0.5"/>
+    <path d="M470 520 m 0 -16 a 16 16 0 1 1 -0.01 0" stroke="#2E7D5B" stroke-width="1.5" opacity="0.35"/>
+  </g>
+</svg>

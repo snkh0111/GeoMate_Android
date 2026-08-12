@@ -5,35 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的</title>
     <style id="theme-vars">
-/* GeoMate 移动端 — 品牌设计令牌 v2（Apple 质感升级）
- * 风格：克制 · 优雅 · 高级（参考苹果 HIG 设计语言）
- * 主色：GeoMate 青绿（教育/自然调性）+ 苹果式中性银灰底
- * 重点：强对比文本层级、鲜亮主色、细腻分层
- * 动效：卡片提升、胶囊按钮反馈、入场动画（尊重减少动效偏好）
+/* GeoMate 移动端 — 品牌设计令牌 v4（苹果极简美学）
+ * 设计方向：refined minimalism（克制 · 精确 · 留白 · 单一强调色）
+ * 参考：苹果 HIG + 苹果设计库（Poppins/Noto Sans SC）
+ * 关键变化：纯白/近白底、精细灰阶、SF Pro 风格系统字体栈、
+ *           更小圆角、更安静阴影、动效只保留关键时刻
  * 品牌前缀：gm
  */
 
 :root {
-  /* ── 色彩通道（苹果 HIG 色阶） ─────────────── */
-  --gm-background: #F5F5F7;        /* Silver Mist 页面底 */
+  /* ── 色彩通道（苹果 HIG 纯净灰阶） ───────── */
+  --gm-background: #F5F5F7;        /* 苹果 Silver Mist 页面底 */
   --gm-foreground: #1D1D1F;        /* 苹果 text-800 主文字 */
-  --gm-card: #FFFFFF;              /* 卡片 */
+  --gm-card: #FFFFFF;              /* 纯白卡片 */
   --gm-card-foreground: #1D1D1F;
   --gm-popover: #FFFFFF;
   --gm-popover-foreground: #1D1D1F;
-  --gm-primary: #2E7D5B;           /* GeoMate 青绿（鲜亮强调） */
+  --gm-primary: #2E7D5B;           /* GeoMate 青绿（唯一强调色） */
   --gm-primary-foreground: #FFFFFF;
-  --gm-muted: #ECECF1;             /* 苹果式浅灰面 */
-  --gm-muted-foreground: #6E6E73;  /* 苹果 text-500 次要文字 */
-  --gm-border: #E3E3E8;            /* 苹果 background-200/300 */
+  --gm-muted: #F2F2F7;             /* 苹果 background-200 */
+  --gm-muted-foreground: #6E6E73;  /* 苹果 text-500 */
+  --gm-border: #E5E5EA;            /* 苹果 background-300 */
   --gm-input: #D1D1D6;
   --gm-ring: #2E7D5B;
 
   /* ── 扩展色（单一主色体系内） ─────────────── */
-  --gm-ink-2: #6E6E73;             /* 次级文字（苹果 500） */
-  --gm-ink-3: #8E8E93;             /* 三级文字（苹果 400） */
-  --gm-surface-2: #ECECF1;         /* 悬浮/选中面 */
-  --gm-primary-soft: #E4F1EA;      /* 主色 8% 浅底 */
+  --gm-ink-2: #6E6E73;             /* 次级文字 */
+  --gm-ink-3: #AEAEB2;             /* 三级文字（苹果 400） */
+  --gm-surface-2: #EBEBF0;         /* 悬浮/选中面 */
+  --gm-primary-soft: #E7F2EC;      /* 主色 8% 浅底 */
 
   /* ── 状态色（苹果系统色，仅用于真实状态） ─── */
   --gm-state-success: #34C759;
@@ -41,18 +41,18 @@
   --gm-state-error: #FF3B30;
   --gm-state-info: #007AFF;
 
-  /* ── 圆角（苹果全局 1.2rem 感，卡片 16px 上限） ─ */
+  /* ── 圆角（苹果精细体系：10 / 12 / 16） ───── */
   --gm-radius-sm: 10px;
   --gm-radius-md: 12px;
   --gm-radius-lg: 16px;
 
-  /* ── 字体（苹果参考库 DM Sans + 中文回退） ─── */
-  --gm-font-sans: "DM Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --gm-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  /* ── 字体（SF Pro 风格系统栈，Android WebView 流畅） ─ */
+  --gm-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --gm-font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
-  /* ── 阴影：安静分层（静态 alpha<=0.05，交互提升） ─ */
+  /* ── 阴影：极致安静（静态 alpha<=0.04，交互微升） ─ */
   --gm-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --gm-shadow-2: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --gm-shadow-2: 0 2px 8px -2px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
   --gm-shadow-3: 0 8px 24px -8px rgba(0, 0, 0, 0.10), 0 4px 8px -4px rgba(0, 0, 0, 0.06);
 }
 
@@ -97,14 +97,14 @@ body {
   background: var(--gm-background);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 
-/* ── 入场动画（克制、苹果式） ──────────────── */
+/* ── 入场动画（克制、一次性的） ────────────── */
 @keyframes gm-rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -112,49 +112,40 @@ body {
   }
 }
 
-@keyframes gm-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* ── 通用组件类 ────────────────────────────── */
+/* ── 通用组件类（苹果极简） ────────────────── */
 .gm-card {
   background: var(--gm-card);
   border: 1px solid var(--gm-border);
   border-radius: var(--gm-radius-lg);
   box-shadow: var(--gm-shadow-1);
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  animation: gm-rise 340ms cubic-bezier(0.3, 0, 0, 1) both;
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: gm-rise 320ms cubic-bezier(0.3, 0, 0, 1) both;
 }
 
 .gm-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--gm-shadow-3);
 }
 
 .gm-card:active {
-  transform: translateY(0) scale(0.985);
+  transform: translateY(0) scale(0.99);
 }
 
 .gm-card-flat {
   background: var(--gm-card);
   border-radius: var(--gm-radius-lg);
   box-shadow: var(--gm-shadow-1);
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  animation: gm-rise 340ms cubic-bezier(0.3, 0, 0, 1) both;
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: gm-rise 320ms cubic-bezier(0.3, 0, 0, 1) both;
 }
 
 .gm-card-flat:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--gm-shadow-3);
 }
 
 .gm-card-flat:active {
-  transform: translateY(0) scale(0.985);
+  transform: translateY(0) scale(0.99);
 }
 
 .gm-chip {
@@ -170,22 +161,21 @@ body {
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
-  transition: background-color 180ms ease, color 180ms ease, transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease;
+  transition: background-color 160ms ease, color 160ms ease, transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .gm-chip:hover {
-  background: #E1E1E7;
+  background: #E8E8ED;
 }
 
 .gm-chip:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
 .gm-chip-active {
   background: var(--gm-primary);
   color: var(--gm-primary-foreground);
   font-weight: 600;
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.16);
 }
 
 .gm-chip-active:hover {
@@ -203,7 +193,7 @@ body {
   font-size: 15px;
   font-weight: 600;
   line-height: 1;
-  transition: background-color 180ms ease, color 180ms ease, transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease, filter 180ms ease;
+  transition: background-color 160ms ease, color 160ms ease, transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 160ms ease;
 }
 
 .gm-btn:active {
@@ -213,20 +203,16 @@ body {
 .gm-btn-primary {
   background: var(--gm-primary);
   color: var(--gm-primary-foreground);
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.18);
 }
 
 .gm-btn-primary:hover {
   background: #27704F;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.22);
 }
 
 .gm-btn-ghost {
   background: transparent;
   color: var(--gm-ink-2);
   border: 1px solid var(--gm-border);
-  box-shadow: var(--gm-shadow-1);
 }
 
 .gm-btn-ghost:hover {
@@ -249,12 +235,6 @@ body {
   background: var(--gm-primary-soft);
   color: var(--gm-primary);
   flex-shrink: 0;
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease;
-}
-
-.gm-icon-tile:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--gm-shadow-2);
 }
 
 .gm-section-title {
@@ -280,8 +260,7 @@ body {
   color: var(--gm-foreground);
   font-size: 15px;
   outline: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .gm-input::placeholder {
@@ -290,11 +269,11 @@ body {
 
 .gm-input:focus {
   border-color: var(--gm-ring);
-  box-shadow: 0 0 0 3px rgba(46, 125, 91, 0.18);
+  box-shadow: 0 0 0 3px rgba(46, 125, 91, 0.16);
 }
 
 .gm-progress {
-  height: 8px;
+  height: 7px;
   border-radius: 999px;
   background: var(--gm-muted);
   overflow: hidden;
@@ -304,31 +283,23 @@ body {
   height: 100%;
   border-radius: 999px;
   background: var(--gm-primary);
-  transition: width 400ms cubic-bezier(0.3, 0, 0, 1);
+  transition: width 360ms cubic-bezier(0.3, 0, 0, 1);
 }
 
-/* ── 底部导航：苹果式毛玻璃 + 微动效 ───────── */
+/* ── 底部导航：苹果式毛玻璃（克制） ────────── */
 [data-mobile-nav="global"] {
-  background: rgba(255, 255, 255, 0.86);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.04), 0 -8px 24px -16px rgba(0, 0, 0, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  backdrop-filter: saturate(180%) blur(16px);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.03);
 }
 
 [data-mobile-nav="global"] a {
-  transition: color 180ms ease, transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: color 160ms ease, transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 [data-mobile-nav="global"] a:active {
-  transform: scale(0.94);
-}
-
-[data-mobile-nav="global"] a i {
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-[data-mobile-nav="global"] a:hover i {
-  transform: translateY(-1px);
+  transform: scale(0.95);
 }
 
 /* ── 减少动效偏好：全部降级 ────────────────── */
@@ -339,8 +310,7 @@ body {
   .gm-btn,
   .gm-icon-tile,
   .gm-progress-bar,
-  [data-mobile-nav="global"] a,
-  [data-mobile-nav="global"] a i {
+  [data-mobile-nav="global"] a {
     animation: none !important;
     transition: none !important;
     transform: none !important;
@@ -587,7 +557,7 @@ body {
       (async function () {
         try {
           var stats = await GeoMate.getPlanStats(user.id);
-          document.getElementById("stat-done").textContent = (stats && (stats.completed || 0)) || 0;
+          document.getElementById("stat-done").textContent = (stats && (stats.completed_tasks || 0)) || 0;
         } catch (e) {}
         try {
           var notes = await GeoMate.getNotes(user.id, 1, 50);

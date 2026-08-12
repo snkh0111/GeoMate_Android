@@ -4,94 +4,518 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 · GeoMate</title>
-    <style>
-/* GeoMate 移动端 — 品牌设计令牌（与首页一致） */
+    <style id="theme-vars">
+/* GeoMate 移动端 — 品牌设计令牌 v4（苹果极简美学）
+ * 设计方向：refined minimalism（克制 · 精确 · 留白 · 单一强调色）
+ * 参考：苹果 HIG + 苹果设计库（Poppins/Noto Sans SC）
+ * 关键变化：纯白/近白底、精细灰阶、SF Pro 风格系统字体栈、
+ *           更小圆角、更安静阴影、动效只保留关键时刻
+ * 品牌前缀：gm
+ */
+
 :root {
-  --gm-background: #F5F5F7;
-  --gm-foreground: #1D1D1F;
-  --gm-card: #FFFFFF;
+  /* ── 色彩通道（苹果 HIG 纯净灰阶） ───────── */
+  --gm-background: #F5F5F7;        /* 苹果 Silver Mist 页面底 */
+  --gm-foreground: #1D1D1F;        /* 苹果 text-800 主文字 */
+  --gm-card: #FFFFFF;              /* 纯白卡片 */
   --gm-card-foreground: #1D1D1F;
-  --gm-primary: #2E7D5B;
+  --gm-popover: #FFFFFF;
+  --gm-popover-foreground: #1D1D1F;
+  --gm-primary: #2E7D5B;           /* GeoMate 青绿（唯一强调色） */
   --gm-primary-foreground: #FFFFFF;
-  --gm-muted: #ECECF1;
-  --gm-muted-foreground: #6E6E73;
-  --gm-border: #E3E3E8;
+  --gm-muted: #F2F2F7;             /* 苹果 background-200 */
+  --gm-muted-foreground: #6E6E73;  /* 苹果 text-500 */
+  --gm-border: #E5E5EA;            /* 苹果 background-300 */
   --gm-input: #D1D1D6;
   --gm-ring: #2E7D5B;
-  --gm-ink-2: #6E6E73;
-  --gm-ink-3: #8E8E93;
-  --gm-surface-2: #ECECF1;
-  --gm-primary-soft: #E4F1EA;
-  --gm-state-error: #FF3B30;
+
+  /* ── 扩展色（单一主色体系内） ─────────────── */
+  --gm-ink-2: #6E6E73;             /* 次级文字 */
+  --gm-ink-3: #AEAEB2;             /* 三级文字（苹果 400） */
+  --gm-surface-2: #EBEBF0;         /* 悬浮/选中面 */
+  --gm-primary-soft: #E7F2EC;      /* 主色 8% 浅底 */
+
+  /* ── 状态色（苹果系统色，仅用于真实状态） ─── */
   --gm-state-success: #34C759;
+  --gm-state-warning: #FF9500;
+  --gm-state-error: #FF3B30;
+  --gm-state-info: #007AFF;
+
+  /* ── 圆角（苹果精细体系：10 / 12 / 16） ───── */
   --gm-radius-sm: 10px;
   --gm-radius-md: 12px;
   --gm-radius-lg: 16px;
-  --gm-font-sans: "DM Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+
+  /* ── 字体（SF Pro 风格系统栈，Android WebView 流畅） ─ */
+  --gm-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --gm-font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* ── 阴影：极致安静（静态 alpha<=0.04，交互微升） ─ */
   --gm-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --gm-shadow-2: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --gm-shadow-2: 0 2px 8px -2px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --gm-shadow-3: 0 8px 24px -8px rgba(0, 0, 0, 0.10), 0 4px 8px -4px rgba(0, 0, 0, 0.06);
 }
 
-@keyframes gm-rise {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Tailwind 语义令牌桥接（供 apply-html-head-contract 生成 @theme inline） */
+@theme inline {
+  --color-background: var(--gm-background);
+  --color-foreground: var(--gm-foreground);
+  --color-card: var(--gm-card);
+  --color-card-foreground: var(--gm-card-foreground);
+  --color-popover: var(--gm-popover);
+  --color-popover-foreground: var(--gm-popover-foreground);
+  --color-primary: var(--gm-primary);
+  --color-primary-foreground: var(--gm-primary-foreground);
+  --color-muted: var(--gm-muted);
+  --color-muted-foreground: var(--gm-muted-foreground);
+  --color-border: var(--gm-border);
+  --color-input: var(--gm-input);
+  --color-ring: var(--gm-ring);
+  --color-ink-2: var(--gm-ink-2);
+  --color-ink-3: var(--gm-ink-3);
+  --color-surface-2: var(--gm-surface-2);
+  --color-primary-soft: var(--gm-primary-soft);
+  --color-state-success: var(--gm-state-success);
+  --color-state-warning: var(--gm-state-warning);
+  --color-state-error: var(--gm-state-error);
+  --color-state-info: var(--gm-state-info);
+  --radius-sm: var(--gm-radius-sm);
+  --radius-md: var(--gm-radius-md);
+  --radius-lg: var(--gm-radius-lg);
+  --font-sans: var(--gm-font-sans);
+  --font-mono: var(--gm-font-mono);
+  --shadow-card: var(--gm-shadow-1);
+  --shadow-raised: var(--gm-shadow-2);
+  --shadow-float: var(--gm-shadow-3);
 }
 
-html, body {
+/* ── 基础排版 ──────────────────────────────── */
+html,
+body {
   font-family: var(--gm-font-sans);
   color: var(--gm-foreground);
   background: var(--gm-background);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
+}
+
+/* ── 入场动画（克制、一次性的） ────────────── */
+@keyframes gm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── 通用组件类（苹果极简） ────────────────── */
+.gm-card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-lg);
+  box-shadow: var(--gm-shadow-1);
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: gm-rise 320ms cubic-bezier(0.3, 0, 0, 1) both;
+}
+
+.gm-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gm-shadow-3);
+}
+
+.gm-card:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.gm-card-flat {
+  background: var(--gm-card);
+  border-radius: var(--gm-radius-lg);
+  box-shadow: var(--gm-shadow-1);
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: gm-rise 320ms cubic-bezier(0.3, 0, 0, 1) both;
+}
+
+.gm-card-flat:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gm-shadow-3);
+}
+
+.gm-card-flat:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.gm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--gm-muted);
+  color: var(--gm-ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease, transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.gm-chip:hover {
+  background: #E8E8ED;
+}
+
+.gm-chip:active {
+  transform: scale(0.97);
+}
+
+.gm-chip-active {
+  background: var(--gm-primary);
+  color: var(--gm-primary-foreground);
+  font-weight: 600;
+}
+
+.gm-chip-active:hover {
+  background: #27704F;
 }
 
 .gm-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  gap: 6px; width: 100%; height: 50px; border-radius: 999px;
-  font-size: 15px; font-weight: 600; line-height: 1; border: 0; cursor: pointer;
-  transition: background-color 180ms ease, transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 48px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  transition: background-color 160ms ease, color 160ms ease, transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 160ms ease;
 }
-.gm-btn:active { transform: scale(0.97); }
-.gm-btn-primary { background: var(--gm-primary); color: var(--gm-primary-foreground); box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.18); }
-.gm-btn-primary:hover { background: #27704F; }
-.gm-btn-primary:disabled { opacity: 0.6; }
+
+.gm-btn:active {
+  transform: scale(0.97);
+}
+
+.gm-btn-primary {
+  background: var(--gm-primary);
+  color: var(--gm-primary-foreground);
+}
+
+.gm-btn-primary:hover {
+  background: #27704F;
+}
+
+.gm-btn-ghost {
+  background: transparent;
+  color: var(--gm-ink-2);
+  border: 1px solid var(--gm-border);
+}
+
+.gm-btn-ghost:hover {
+  background: var(--gm-surface-2);
+}
+
+.gm-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gm-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--gm-radius-md);
+  background: var(--gm-primary-soft);
+  color: var(--gm-primary);
+  flex-shrink: 0;
+}
+
+.gm-section-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--gm-foreground);
+}
+
+.gm-hairline {
+  height: 1px;
+  background: var(--gm-border);
+  border: 0;
+}
 
 .gm-input {
-  width: 100%; height: 50px; padding: 0 16px; border-radius: var(--gm-radius-md);
-  border: 1px solid var(--gm-input); background: var(--gm-card); color: var(--gm-foreground);
-  font-size: 15px; outline: none; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: var(--gm-radius-md);
+  border: 1px solid var(--gm-input);
+  background: var(--gm-card);
+  color: var(--gm-foreground);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
-.gm-input::placeholder { color: var(--gm-ink-3); }
-.gm-input:focus { border-color: var(--gm-ring); box-shadow: 0 0 0 3px rgba(46, 125, 91, 0.18); }
 
-.auth-card {
-  background: var(--gm-card); border: 1px solid var(--gm-border);
-  border-radius: var(--gm-radius-lg); box-shadow: var(--gm-shadow-1);
-  padding: 28px 24px; animation: gm-rise 340ms cubic-bezier(0.3, 0, 0, 1) both;
+.gm-input::placeholder {
+  color: var(--gm-ink-3);
 }
-.brand-mark {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 56px; height: 56px; border-radius: 18px;
-  background: var(--gm-primary); color: #fff; box-shadow: var(--gm-shadow-2);
+
+.gm-input:focus {
+  border-color: var(--gm-ring);
+  box-shadow: 0 0 0 3px rgba(46, 125, 91, 0.16);
 }
-.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--gm-muted); border-radius: 999px; padding: 4px; }
-.seg button {
-  height: 38px; border: 0; border-radius: 999px; font-size: 14px; font-weight: 600;
-  background: transparent; color: var(--gm-ink-2); cursor: pointer; transition: all 160ms ease;
+
+.gm-progress {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--gm-muted);
+  overflow: hidden;
 }
-.seg button.active { background: var(--gm-card); color: var(--gm-primary); box-shadow: var(--gm-shadow-1); }
-.auth-error { color: var(--gm-state-error); font-size: 13px; min-height: 18px; }
-.auth-hint { color: var(--gm-ink-3); font-size: 12px; }
-</style>
+
+.gm-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gm-primary);
+  transition: width 360ms cubic-bezier(0.3, 0, 0, 1);
+}
+
+/* ── 底部导航：苹果式毛玻璃（克制） ────────── */
+[data-mobile-nav="global"] {
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  backdrop-filter: saturate(180%) blur(16px);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.03);
+}
+
+[data-mobile-nav="global"] a {
+  transition: color 160ms ease, transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-mobile-nav="global"] a:active {
+  transform: scale(0.95);
+}
+
+/* ── 减少动效偏好：全部降级 ────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .gm-card,
+  .gm-card-flat,
+  .gm-chip,
+  .gm-btn,
+  .gm-icon-tile,
+  .gm-progress-bar,
+  [data-mobile-nav="global"] a {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+    </style>
+    <script src="../assets/vendor/tailwind.global.js"></script>
+    <script src="../assets/vendor/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--gm-background);
+    --color-foreground: var(--gm-foreground);
+    --color-card: var(--gm-card);
+    --color-card-foreground: var(--gm-card-foreground);
+    --color-popover: var(--gm-popover);
+    --color-popover-foreground: var(--gm-popover-foreground);
+    --color-primary: var(--gm-primary);
+    --color-primary-foreground: var(--gm-primary-foreground);
+    --color-muted: var(--gm-muted);
+    --color-muted-foreground: var(--gm-muted-foreground);
+    --color-border: var(--gm-border);
+    --color-input: var(--gm-input);
+    --color-ring: var(--gm-ring);
+    --color-ink-2: var(--gm-ink-2);
+    --color-ink-3: var(--gm-ink-3);
+    --color-surface-2: var(--gm-surface-2);
+    --color-primary-soft: var(--gm-primary-soft);
+    --color-state-success: var(--gm-state-success);
+    --color-state-warning: var(--gm-state-warning);
+    --color-state-error: var(--gm-state-error);
+    --color-state-info: var(--gm-state-info);
+    --radius-sm: var(--gm-radius-sm);
+    --radius-md: var(--gm-radius-md);
+    --radius-lg: var(--gm-radius-lg);
+  }
+  @layer base {
+    body { background: var(--gm-background); color: var(--gm-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--gm-background); }
+      .text-background { color: var(--gm-background); }
+      .border-background { border-color: var(--gm-background); }
+      .ring-background { --tw-ring-color: var(--gm-background); }
+      .bg-foreground { background-color: var(--gm-foreground); }
+      .text-foreground { color: var(--gm-foreground); }
+      .border-foreground { border-color: var(--gm-foreground); }
+      .ring-foreground { --tw-ring-color: var(--gm-foreground); }
+      .bg-card { background-color: var(--gm-card); }
+      .text-card { color: var(--gm-card); }
+      .border-card { border-color: var(--gm-card); }
+      .ring-card { --tw-ring-color: var(--gm-card); }
+      .bg-card-foreground { background-color: var(--gm-card-foreground); }
+      .text-card-foreground { color: var(--gm-card-foreground); }
+      .border-card-foreground { border-color: var(--gm-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--gm-card-foreground); }
+      .bg-popover { background-color: var(--gm-popover); }
+      .text-popover { color: var(--gm-popover); }
+      .border-popover { border-color: var(--gm-popover); }
+      .ring-popover { --tw-ring-color: var(--gm-popover); }
+      .bg-popover-foreground { background-color: var(--gm-popover-foreground); }
+      .text-popover-foreground { color: var(--gm-popover-foreground); }
+      .border-popover-foreground { border-color: var(--gm-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--gm-popover-foreground); }
+      .bg-primary { background-color: var(--gm-primary); }
+      .text-primary { color: var(--gm-primary); }
+      .border-primary { border-color: var(--gm-primary); }
+      .ring-primary { --tw-ring-color: var(--gm-primary); }
+      .bg-primary-foreground { background-color: var(--gm-primary-foreground); }
+      .text-primary-foreground { color: var(--gm-primary-foreground); }
+      .border-primary-foreground { border-color: var(--gm-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--gm-primary-foreground); }
+      .bg-muted { background-color: var(--gm-muted); }
+      .text-muted { color: var(--gm-muted); }
+      .border-muted { border-color: var(--gm-muted); }
+      .ring-muted { --tw-ring-color: var(--gm-muted); }
+      .bg-muted-foreground { background-color: var(--gm-muted-foreground); }
+      .text-muted-foreground { color: var(--gm-muted-foreground); }
+      .border-muted-foreground { border-color: var(--gm-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--gm-muted-foreground); }
+      .bg-border { background-color: var(--gm-border); }
+      .text-border { color: var(--gm-border); }
+      .border-border { border-color: var(--gm-border); }
+      .ring-border { --tw-ring-color: var(--gm-border); }
+      .bg-input { background-color: var(--gm-input); }
+      .text-input { color: var(--gm-input); }
+      .border-input { border-color: var(--gm-input); }
+      .ring-input { --tw-ring-color: var(--gm-input); }
+      .bg-ring { background-color: var(--gm-ring); }
+      .text-ring { color: var(--gm-ring); }
+      .border-ring { border-color: var(--gm-ring); }
+      .ring-ring { --tw-ring-color: var(--gm-ring); }
+      .bg-ink-2 { background-color: var(--gm-ink-2); }
+      .text-ink-2 { color: var(--gm-ink-2); }
+      .border-ink-2 { border-color: var(--gm-ink-2); }
+      .ring-ink-2 { --tw-ring-color: var(--gm-ink-2); }
+      .bg-ink-3 { background-color: var(--gm-ink-3); }
+      .text-ink-3 { color: var(--gm-ink-3); }
+      .border-ink-3 { border-color: var(--gm-ink-3); }
+      .ring-ink-3 { --tw-ring-color: var(--gm-ink-3); }
+      .bg-surface-2 { background-color: var(--gm-surface-2); }
+      .text-surface-2 { color: var(--gm-surface-2); }
+      .border-surface-2 { border-color: var(--gm-surface-2); }
+      .ring-surface-2 { --tw-ring-color: var(--gm-surface-2); }
+      .bg-primary-soft { background-color: var(--gm-primary-soft); }
+      .text-primary-soft { color: var(--gm-primary-soft); }
+      .border-primary-soft { border-color: var(--gm-primary-soft); }
+      .ring-primary-soft { --tw-ring-color: var(--gm-primary-soft); }
+      .bg-state-success { background-color: var(--gm-state-success); }
+      .text-state-success { color: var(--gm-state-success); }
+      .border-state-success { border-color: var(--gm-state-success); }
+      .ring-state-success { --tw-ring-color: var(--gm-state-success); }
+      .bg-state-warning { background-color: var(--gm-state-warning); }
+      .text-state-warning { color: var(--gm-state-warning); }
+      .border-state-warning { border-color: var(--gm-state-warning); }
+      .ring-state-warning { --tw-ring-color: var(--gm-state-warning); }
+      .bg-state-error { background-color: var(--gm-state-error); }
+      .text-state-error { color: var(--gm-state-error); }
+      .border-state-error { border-color: var(--gm-state-error); }
+      .ring-state-error { --tw-ring-color: var(--gm-state-error); }
+      .bg-state-info { background-color: var(--gm-state-info); }
+      .text-state-info { color: var(--gm-state-info); }
+      .border-state-info { border-color: var(--gm-state-info); }
+      .ring-state-info { --tw-ring-color: var(--gm-state-info); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
 </head>
-<body class="min-h-screen">
-    <main class="flex min-h-screen flex-col justify-center px-5" style="min-height:100vh">
-        <div class="mx-auto w-full" style="max-width:26rem">
+<body class="min-h-screen font-sans antialiased">
+    <style id="auth-layout">
+      .auth-card {
+        background: var(--gm-card);
+        border: 1px solid var(--gm-border);
+        border-radius: var(--gm-radius-lg);
+        box-shadow: var(--gm-shadow-2);
+        padding: 28px 24px;
+        animation: gm-rise 340ms cubic-bezier(0.3, 0, 0, 1) both;
+      }
+      .brand-mark {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 60px; height: 60px; border-radius: 20px;
+        background: var(--gm-primary); color: var(--gm-primary-foreground);
+        box-shadow: 0 4px 14px -4px rgba(46, 125, 91, 0.45);
+      }
+      .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--gm-muted); border-radius: 999px; padding: 4px; }
+      .seg button {
+        height: 40px; border: 0; border-radius: 999px; font-size: 14px; font-weight: 600;
+        background: transparent; color: var(--gm-ink-2); cursor: pointer;
+        transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+      }
+      .seg button.active { background: var(--gm-card); color: var(--gm-primary); box-shadow: var(--gm-shadow-1); }
+      .auth-error { color: var(--gm-state-error); font-size: 13px; min-height: 18px; }
+      .auth-hint { color: var(--gm-ink-3); font-size: 12px; }
+      .contour-bg {
+        position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background-image: url("../assets/geo-contour.svg");
+        background-size: cover; background-position: center;
+        opacity: 0.5;
+      }
+      .login-wrap { position: relative; z-index: 1; }
+    </style>
+    <main class="flex min-h-screen flex-col justify-center px-5" style="min-height:100vh; position:relative">
+        <div class="contour-bg" aria-hidden="true"></div>
+        <div class="login-wrap mx-auto w-full" style="max-width:26rem">
             <div class="mb-8 text-center">
                 <div class="brand-mark mx-auto mb-4">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                    <svg width="38" height="38" viewBox="0 0 1024 1024" fill="none" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="gm-bg2-l" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0" stop-color="#2E7D5B"/>
+                                <stop offset="1" stop-color="#20543E"/>
+                            </linearGradient>
+                        </defs>
+                        <rect width="1024" height="1024" rx="262" fill="url(#gm-bg2-l)"/>
+                        <circle cx="512" cy="512" r="312" stroke="#FFFFFF" stroke-width="14" opacity="0.95"/>
+                        <circle cx="512" cy="512" r="252" stroke="#FFFFFF" stroke-width="4" opacity="0.4"/>
+                        <circle cx="512" cy="236" r="12" fill="#FFFFFF"/>
+                        <circle cx="788" cy="512" r="12" fill="#FFFFFF"/>
+                        <circle cx="512" cy="788" r="12" fill="#FFFFFF"/>
+                        <circle cx="236" cy="512" r="12" fill="#FFFFFF"/>
+                        <polygon points="512,392 586,512 512,632 438,512" fill="#F5B35A"/>
+                        <line x1="586" y1="512" x2="672" y2="384" stroke="#F5B35A" stroke-width="18" stroke-linecap="round"/>
+                        <circle cx="512" cy="512" r="16" fill="#FAF9F5"/>
+                        <circle cx="712" cy="300" r="92" fill="rgba(255,255,255,0.12)" stroke="#FFFFFF" stroke-width="16"/>
+                        <line x1="776" y1="364" x2="852" y2="288" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+                    </svg>
                 </div>
-                <h1 class="text-2xl font-semibold tracking-tight">GeoMate</h1>
+                <h1 class="text-[28px] font-bold tracking-tight" style="letter-spacing:-0.03em">GeoMate</h1>
                 <p class="mt-2 text-[13px] leading-snug" style="color:var(--gm-ink-2)">威海地质野外实习助手</p>
             </div>
 
@@ -115,7 +539,7 @@ html, body {
                         <input id="f-display" class="gm-input" type="text" placeholder="展示给你的名字">
                     </div>
                     <div class="auth-error" id="auth-error"></div>
-                    <button type="submit" id="auth-submit" class="gm-btn gm-btn-primary">登 录</button>
+                    <button type="submit" id="auth-submit" data-dom-id="auth-submit" class="gm-btn gm-btn-primary w-full">登 录</button>
                 </form>
             </div>
 
@@ -124,8 +548,8 @@ html, body {
             </div>
         </div>
     </main>
-
     <script src="../assets/js/api.js"></script>
     <script src="../assets/js/login.js"></script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

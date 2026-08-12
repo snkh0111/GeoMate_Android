@@ -73,13 +73,13 @@
       const planCountEl = $("#stat-plans");
       const kdCountEl = $("#stat-knowledge");
       if (routeCountEl) routeCountEl.textContent = (routes && routes.total) || 0;
-      if (planCountEl) planCountEl.textContent = (stats && stats.total) || 0;
+      if (planCountEl) planCountEl.textContent = (stats && stats.total_tasks) || 0;
       if (kdCountEl) kdCountEl.textContent = (kstats && kstats.document_count) || 0;
 
       // Empty state hint
       const emptyEl = $("#empty-state");
       if (emptyEl) {
-        const totalCount = ((routes && routes.total) || 0) + ((stats && stats.total) || 0);
+        const totalCount = ((routes && routes.total) || 0) + ((stats && stats.total_tasks) || 0);
         if (totalCount > 0) {
           emptyEl.style.display = "none";
         } else {

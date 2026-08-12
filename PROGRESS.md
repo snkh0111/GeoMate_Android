@@ -16,9 +16,10 @@
 | 4 | 前后端联动测试 + 交互 bug 修复 | 完成 |
 | 5 | 端到端自测（后端 API / 前端页面 / AI 对话全链路） | 完成 |
 | 6 | 解决 Android 兼容两大阻塞：嵌入模型（torch）与前端 CDN 依赖 | 完成 |
-| 7 | 打包 APK（Android Studio Gradle + Chaquopy 集成） | ✅ 完成 |
-| 8 | 登录 + 空白初始状态 + 上传 PDF 一键自动生成（路线/计划/知识库） | ✅ 完成 |
-| 9 | 前端重设计 + 静态演示页接入后端真实数据 + LLM 失败自动降级 | ✅ 完成 |
+| 7 | 打包 APK（Android Studio Gradle + Chaquopy 集成） | 完成 |
+| 8 | 登录 + 空白初始状态 + 上传 PDF 一键自动生成（路线/计划/知识库） | 完成 |
+| 9 | 前端重设计 + 静态演示页接入后端真实数据 + LLM 失败自动降级 | 完成 |
+| 10 | 真机联调新 APK（含登录、上传自动生成、静态页接后端、后端启动修复） | 进行中 |
 
 ## 阶段详情
 
@@ -36,9 +37,9 @@
 
 ### 3. 前端设计（frontend/）
 
-- 纯 HTML/CSS 静态设计稿：Tailwind + Lucide 图标（本地 vendor，无 CDN），苹果风格设计令牌 v4。
+- 纯 HTML/CSS 静态设计稿：Tailwind + Lucide 图标（本地 vendor，无 CDN），苹果风格设计令牌。
 - 页面：登录 / 首页 / 路线 / 路线详情 / 学习计划 / 知识库 / 野外记录 / AI 助手 / 我的。
-- assets/js/：api.js（API 客户端）、app.js（启动引导）、nav.js（导航）、route-detail.js、routes.js、plans.js、knowledge.js、notes.js、login.js、chat.js（SSE 对话）。
+- assets/js/：api.js（API 客户端）、app.js（启动引导）、nav.js（导航 + 登录守卫）、route-detail.js、routes.js、plans.js、knowledge.js、notes.js、login.js、chat.js（SSE 对话）。
 
 ### 4. 前后端联动与修复
 
@@ -59,9 +60,16 @@
 
 ### 7. APK 打包（2026-08-12）
 
-- Android Studio 解压版 D:\as（JDK21 + SDK 35 + Gradle 8.9）+ Chaquopy 15.0.1 + WebView。
-- 构建链路关键修复：pydantic-core 无 Android wheel → 降级 pydantic 1.x + fastapi 0.99（全库适配 v1 API：model_validate→from_orm/parse_obj）；chaquo.com 超时 → 走 http://127.0.0.1:7892 代理 + pip 超时重试。
-- 产出 app-debug.apk（36MB，arm64-v8a + armeabi-v7a）。
+- Android Studio 解压版 D:\as（JDK 21 + SDK 35 + Gradle 8.9 + AGP 8.7.3 + Chaquopy 15.0.1）+ WebView。
+- 构建命令（android/ 下）：
+
+  ```powershell
+  $env:JAVA_HOME="D:\as\jbr"; $env:ANDROID_HOME="D:\as\sdk"
+  $env:HTTPS_PROXY="http://127.0.0.1:7892"; $env:HTTP_PROXY="http://127.0.0.1:7892"
+  .\gradlew.bat assembleDebug --no-daemon
+  ```
+
+- 产出 app-debug.apk（36MB，arm64-v8a + armeabi-v7a），位于 android/app/build/outputs/apk/debug/。
 
 ### 8. 登录 + 空白初始状态 + 上传自动生成（2026-08-12）
 
@@ -84,6 +92,13 @@
 - intelligence_service.py：LLM 调用失败自动降级规则引擎（rule_fallback），管线永不因网络失败中断。
 - 端到端回归全部通过：注册登录 → 空白首页 → 上传自动生成 → 路线列表/详情/加入计划 → 计划勾选 → 知识库搜索 → 野外记录新增 → 个人统计。
 
+## 踩坑记录
+
+- **chaquo.com 国内访问不稳**：构建须走 http://127.0.0.1:7892 代理（Clash 混合端口；socks 需 PySocks，勿用）+ pip 超时重试（build.gradle 已配 --timeout 120 --retries 10）。
+- **pydantic-core 无 Android wheel**：必须用 pydantic 1.10.17 + fastapi 0.99.1；全库适配 v1 API（model_validate → from_orm/parse_obj），**新增代码禁止再写 model_validate/model_dump**。
+- **requirements 相对路径**：Android 依赖清单必须用相对路径形式。
+- **清华镜像覆盖 Chaquopy 索引**：会拉不到 Android wheel，需移除镜像配置。
+
 ## 已知问题
 
 - Anthropic API 国内直连超时：LLM 模式需代理；无 key 或调用失败时自动走离线规则引擎/知识库 RAG，不影响使用。
@@ -93,4 +108,4 @@
 ## 下一步
 
 1. 重新构建 APK（含登录/空白/自动生成 + 静态页接后端全部修复）后真机联调。
-2. 应用图标、release 签名、构建机 Python 对齐 3.11。
+2. 应用图标、release 签名、构建机 Python 对齐 3.11（消除 .pyc 编译警告）。

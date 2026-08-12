@@ -95,10 +95,36 @@ class IntelligenceService:
                 system_prompt=SYSTEM_PROMPT, user_message=user_message, api_key=api_key,
             )
         except Exception as e:
-            doc.status = "failed"
-            doc.error_message = f"LLM 调用失败: {str(e)}"
+            # LLM 不可达时降级到离线规则引擎，保证"上传→自动生成"管线可用（Android 常见）。
+            logger.warning("LLM call failed (%s) — falling back to rule-based analysis", str(e)[:200])
+            from app.ai.rule_analyzer import analyze as rule_analyze
+
+            analysis = rule_analyze(parsed)
+            doc.status = "completed"
+            doc.parsed_content = {
+                **doc.parsed_content,
+                "analysis": {
+                    "summary": analysis.summary,
+                    "route_count": len(analysis.routes),
+                    "knowledge_point_count": len(analysis.knowledge_points),
+                    "study_task_count": len(analysis.study_tasks),
+                    "raw_json": "",
+                    "data": analysis.dict(),
+                    "mode": "rule_fallback",
+                    "analyzed_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+                },
+            }
             await self.db.commit()
-            raise
+            logger.info(
+                "Rule fallback analysis complete: %d routes, %d points, %d tasks",
+                len(analysis.routes), len(analysis.knowledge_points), len(analysis.study_tasks),
+            )
+            return {
+                "analysis": analysis,
+                "raw_json": "",
+                "document_id": doc.id,
+                "mode": "rule_fallback",
+            }
 
         analysis = self._parse_and_validate(raw_json)
 
