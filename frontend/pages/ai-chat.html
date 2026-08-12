@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地质助手</title>
+    <style id="theme-vars">
+/* GeoMate 移动端 — 品牌设计令牌 v2（Apple 质感升级）
+ * 风格：克制 · 优雅 · 高级（参考苹果 HIG 设计语言）
+ * 主色：GeoMate 青绿（教育/自然调性）+ 苹果式中性银灰底
+ * 重点：强对比文本层级、鲜亮主色、细腻分层
+ * 动效：卡片提升、胶囊按钮反馈、入场动画（尊重减少动效偏好）
+ * 品牌前缀：gm
+ */
+
+:root {
+  /* ── 色彩通道（苹果 HIG 色阶） ─────────────── */
+  --gm-background: #F5F5F7;        /* Silver Mist 页面底 */
+  --gm-foreground: #1D1D1F;        /* 苹果 text-800 主文字 */
+  --gm-card: #FFFFFF;              /* 卡片 */
+  --gm-card-foreground: #1D1D1F;
+  --gm-popover: #FFFFFF;
+  --gm-popover-foreground: #1D1D1F;
+  --gm-primary: #2E7D5B;           /* GeoMate 青绿（鲜亮强调） */
+  --gm-primary-foreground: #FFFFFF;
+  --gm-muted: #ECECF1;             /* 苹果式浅灰面 */
+  --gm-muted-foreground: #6E6E73;  /* 苹果 text-500 次要文字 */
+  --gm-border: #E3E3E8;            /* 苹果 background-200/300 */
+  --gm-input: #D1D1D6;
+  --gm-ring: #2E7D5B;
+
+  /* ── 扩展色（单一主色体系内） ─────────────── */
+  --gm-ink-2: #6E6E73;             /* 次级文字（苹果 500） */
+  --gm-ink-3: #8E8E93;             /* 三级文字（苹果 400） */
+  --gm-surface-2: #ECECF1;         /* 悬浮/选中面 */
+  --gm-primary-soft: #E4F1EA;      /* 主色 8% 浅底 */
+
+  /* ── 状态色（苹果系统色，仅用于真实状态） ─── */
+  --gm-state-success: #34C759;
+  --gm-state-warning: #FF9500;
+  --gm-state-error: #FF3B30;
+  --gm-state-info: #007AFF;
+
+  /* ── 圆角（苹果全局 1.2rem 感，卡片 16px 上限） ─ */
+  --gm-radius-sm: 10px;
+  --gm-radius-md: 12px;
+  --gm-radius-lg: 16px;
+
+  /* ── 字体（苹果参考库 DM Sans + 中文回退） ─── */
+  --gm-font-sans: "DM Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --gm-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  /* ── 阴影：安静分层（静态 alpha<=0.05，交互提升） ─ */
+  --gm-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --gm-shadow-2: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --gm-shadow-3: 0 8px 24px -8px rgba(0, 0, 0, 0.10), 0 4px 8px -4px rgba(0, 0, 0, 0.06);
+}
+
+/* Tailwind 语义令牌桥接（供 apply-html-head-contract 生成 @theme inline） */
+@theme inline {
+  --color-background: var(--gm-background);
+  --color-foreground: var(--gm-foreground);
+  --color-card: var(--gm-card);
+  --color-card-foreground: var(--gm-card-foreground);
+  --color-popover: var(--gm-popover);
+  --color-popover-foreground: var(--gm-popover-foreground);
+  --color-primary: var(--gm-primary);
+  --color-primary-foreground: var(--gm-primary-foreground);
+  --color-muted: var(--gm-muted);
+  --color-muted-foreground: var(--gm-muted-foreground);
+  --color-border: var(--gm-border);
+  --color-input: var(--gm-input);
+  --color-ring: var(--gm-ring);
+  --color-ink-2: var(--gm-ink-2);
+  --color-ink-3: var(--gm-ink-3);
+  --color-surface-2: var(--gm-surface-2);
+  --color-primary-soft: var(--gm-primary-soft);
+  --color-state-success: var(--gm-state-success);
+  --color-state-warning: var(--gm-state-warning);
+  --color-state-error: var(--gm-state-error);
+  --color-state-info: var(--gm-state-info);
+  --radius-sm: var(--gm-radius-sm);
+  --radius-md: var(--gm-radius-md);
+  --radius-lg: var(--gm-radius-lg);
+  --font-sans: var(--gm-font-sans);
+  --font-mono: var(--gm-font-mono);
+  --shadow-card: var(--gm-shadow-1);
+  --shadow-raised: var(--gm-shadow-2);
+  --shadow-float: var(--gm-shadow-3);
+}
+
+/* ── 基础排版 ──────────────────────────────── */
+html,
+body {
+  font-family: var(--gm-font-sans);
+  color: var(--gm-foreground);
+  background: var(--gm-background);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: 0;
+}
+
+/* ── 入场动画（克制、苹果式） ──────────────── */
+@keyframes gm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gm-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── 通用组件类 ────────────────────────────── */
+.gm-card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-lg);
+  box-shadow: var(--gm-shadow-1);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: gm-rise 340ms cubic-bezier(0.3, 0, 0, 1) both;
+}
+
+.gm-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--gm-shadow-3);
+}
+
+.gm-card:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.gm-card-flat {
+  background: var(--gm-card);
+  border-radius: var(--gm-radius-lg);
+  box-shadow: var(--gm-shadow-1);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: gm-rise 340ms cubic-bezier(0.3, 0, 0, 1) both;
+}
+
+.gm-card-flat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--gm-shadow-3);
+}
+
+.gm-card-flat:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.gm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--gm-muted);
+  color: var(--gm-ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background-color 180ms ease, color 180ms ease, transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease;
+}
+
+.gm-chip:hover {
+  background: #E1E1E7;
+}
+
+.gm-chip:active {
+  transform: scale(0.96);
+}
+
+.gm-chip-active {
+  background: var(--gm-primary);
+  color: var(--gm-primary-foreground);
+  font-weight: 600;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.16);
+}
+
+.gm-chip-active:hover {
+  background: #27704F;
+}
+
+.gm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 48px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  transition: background-color 180ms ease, color 180ms ease, transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease, filter 180ms ease;
+}
+
+.gm-btn:active {
+  transform: scale(0.97);
+}
+
+.gm-btn-primary {
+  background: var(--gm-primary);
+  color: var(--gm-primary-foreground);
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.18);
+}
+
+.gm-btn-primary:hover {
+  background: #27704F;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.22);
+}
+
+.gm-btn-ghost {
+  background: transparent;
+  color: var(--gm-ink-2);
+  border: 1px solid var(--gm-border);
+  box-shadow: var(--gm-shadow-1);
+}
+
+.gm-btn-ghost:hover {
+  background: var(--gm-surface-2);
+}
+
+.gm-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gm-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--gm-radius-md);
+  background: var(--gm-primary-soft);
+  color: var(--gm-primary);
+  flex-shrink: 0;
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease;
+}
+
+.gm-icon-tile:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gm-shadow-2);
+}
+
+.gm-section-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--gm-foreground);
+}
+
+.gm-hairline {
+  height: 1px;
+  background: var(--gm-border);
+  border: 0;
+}
+
+.gm-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: var(--gm-radius-md);
+  border: 1px solid var(--gm-input);
+  background: var(--gm-card);
+  color: var(--gm-foreground);
+  font-size: 15px;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.gm-input::placeholder {
+  color: var(--gm-ink-3);
+}
+
+.gm-input:focus {
+  border-color: var(--gm-ring);
+  box-shadow: 0 0 0 3px rgba(46, 125, 91, 0.18);
+}
+
+.gm-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--gm-muted);
+  overflow: hidden;
+}
+
+.gm-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gm-primary);
+  transition: width 400ms cubic-bezier(0.3, 0, 0, 1);
+}
+
+/* ── 底部导航：苹果式毛玻璃 + 微动效 ───────── */
+[data-mobile-nav="global"] {
+  background: rgba(255, 255, 255, 0.86);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.04), 0 -8px 24px -16px rgba(0, 0, 0, 0.14);
+}
+
+[data-mobile-nav="global"] a {
+  transition: color 180ms ease, transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-mobile-nav="global"] a:active {
+  transform: scale(0.94);
+}
+
+[data-mobile-nav="global"] a i {
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-mobile-nav="global"] a:hover i {
+  transform: translateY(-1px);
+}
+
+/* ── 减少动效偏好：全部降级 ────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .gm-card,
+  .gm-card-flat,
+  .gm-chip,
+  .gm-btn,
+  .gm-icon-tile,
+  .gm-progress-bar,
+  [data-mobile-nav="global"] a,
+  [data-mobile-nav="global"] a i {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--gm-background);
+    --color-foreground: var(--gm-foreground);
+    --color-card: var(--gm-card);
+    --color-card-foreground: var(--gm-card-foreground);
+    --color-popover: var(--gm-popover);
+    --color-popover-foreground: var(--gm-popover-foreground);
+    --color-primary: var(--gm-primary);
+    --color-primary-foreground: var(--gm-primary-foreground);
+    --color-muted: var(--gm-muted);
+    --color-muted-foreground: var(--gm-muted-foreground);
+    --color-border: var(--gm-border);
+    --color-input: var(--gm-input);
+    --color-ring: var(--gm-ring);
+    --color-ink-2: var(--gm-ink-2);
+    --color-ink-3: var(--gm-ink-3);
+    --color-surface-2: var(--gm-surface-2);
+    --color-primary-soft: var(--gm-primary-soft);
+    --color-state-success: var(--gm-state-success);
+    --color-state-warning: var(--gm-state-warning);
+    --color-state-error: var(--gm-state-error);
+    --color-state-info: var(--gm-state-info);
+    --radius-sm: var(--gm-radius-sm);
+    --radius-md: var(--gm-radius-md);
+    --radius-lg: var(--gm-radius-lg);
+  }
+  @layer base {
+    body { background: var(--gm-background); color: var(--gm-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--gm-background); }
+      .text-background { color: var(--gm-background); }
+      .border-background { border-color: var(--gm-background); }
+      .ring-background { --tw-ring-color: var(--gm-background); }
+      .bg-foreground { background-color: var(--gm-foreground); }
+      .text-foreground { color: var(--gm-foreground); }
+      .border-foreground { border-color: var(--gm-foreground); }
+      .ring-foreground { --tw-ring-color: var(--gm-foreground); }
+      .bg-card { background-color: var(--gm-card); }
+      .text-card { color: var(--gm-card); }
+      .border-card { border-color: var(--gm-card); }
+      .ring-card { --tw-ring-color: var(--gm-card); }
+      .bg-card-foreground { background-color: var(--gm-card-foreground); }
+      .text-card-foreground { color: var(--gm-card-foreground); }
+      .border-card-foreground { border-color: var(--gm-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--gm-card-foreground); }
+      .bg-popover { background-color: var(--gm-popover); }
+      .text-popover { color: var(--gm-popover); }
+      .border-popover { border-color: var(--gm-popover); }
+      .ring-popover { --tw-ring-color: var(--gm-popover); }
+      .bg-popover-foreground { background-color: var(--gm-popover-foreground); }
+      .text-popover-foreground { color: var(--gm-popover-foreground); }
+      .border-popover-foreground { border-color: var(--gm-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--gm-popover-foreground); }
+      .bg-primary { background-color: var(--gm-primary); }
+      .text-primary { color: var(--gm-primary); }
+      .border-primary { border-color: var(--gm-primary); }
+      .ring-primary { --tw-ring-color: var(--gm-primary); }
+      .bg-primary-foreground { background-color: var(--gm-primary-foreground); }
+      .text-primary-foreground { color: var(--gm-primary-foreground); }
+      .border-primary-foreground { border-color: var(--gm-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--gm-primary-foreground); }
+      .bg-muted { background-color: var(--gm-muted); }
+      .text-muted { color: var(--gm-muted); }
+      .border-muted { border-color: var(--gm-muted); }
+      .ring-muted { --tw-ring-color: var(--gm-muted); }
+      .bg-muted-foreground { background-color: var(--gm-muted-foreground); }
+      .text-muted-foreground { color: var(--gm-muted-foreground); }
+      .border-muted-foreground { border-color: var(--gm-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--gm-muted-foreground); }
+      .bg-border { background-color: var(--gm-border); }
+      .text-border { color: var(--gm-border); }
+      .border-border { border-color: var(--gm-border); }
+      .ring-border { --tw-ring-color: var(--gm-border); }
+      .bg-input { background-color: var(--gm-input); }
+      .text-input { color: var(--gm-input); }
+      .border-input { border-color: var(--gm-input); }
+      .ring-input { --tw-ring-color: var(--gm-input); }
+      .bg-ring { background-color: var(--gm-ring); }
+      .text-ring { color: var(--gm-ring); }
+      .border-ring { border-color: var(--gm-ring); }
+      .ring-ring { --tw-ring-color: var(--gm-ring); }
+      .bg-ink-2 { background-color: var(--gm-ink-2); }
+      .text-ink-2 { color: var(--gm-ink-2); }
+      .border-ink-2 { border-color: var(--gm-ink-2); }
+      .ring-ink-2 { --tw-ring-color: var(--gm-ink-2); }
+      .bg-ink-3 { background-color: var(--gm-ink-3); }
+      .text-ink-3 { color: var(--gm-ink-3); }
+      .border-ink-3 { border-color: var(--gm-ink-3); }
+      .ring-ink-3 { --tw-ring-color: var(--gm-ink-3); }
+      .bg-surface-2 { background-color: var(--gm-surface-2); }
+      .text-surface-2 { color: var(--gm-surface-2); }
+      .border-surface-2 { border-color: var(--gm-surface-2); }
+      .ring-surface-2 { --tw-ring-color: var(--gm-surface-2); }
+      .bg-primary-soft { background-color: var(--gm-primary-soft); }
+      .text-primary-soft { color: var(--gm-primary-soft); }
+      .border-primary-soft { border-color: var(--gm-primary-soft); }
+      .ring-primary-soft { --tw-ring-color: var(--gm-primary-soft); }
+      .bg-state-success { background-color: var(--gm-state-success); }
+      .text-state-success { color: var(--gm-state-success); }
+      .border-state-success { border-color: var(--gm-state-success); }
+      .ring-state-success { --tw-ring-color: var(--gm-state-success); }
+      .bg-state-warning { background-color: var(--gm-state-warning); }
+      .text-state-warning { color: var(--gm-state-warning); }
+      .border-state-warning { border-color: var(--gm-state-warning); }
+      .ring-state-warning { --tw-ring-color: var(--gm-state-warning); }
+      .bg-state-error { background-color: var(--gm-state-error); }
+      .text-state-error { color: var(--gm-state-error); }
+      .border-state-error { border-color: var(--gm-state-error); }
+      .ring-state-error { --tw-ring-color: var(--gm-state-error); }
+      .bg-state-info { background-color: var(--gm-state-info); }
+      .text-state-info { color: var(--gm-state-info); }
+      .border-state-info { border-color: var(--gm-state-info); }
+      .ring-state-info { --tw-ring-color: var(--gm-state-info); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+    <style id="critical-layout">
+      /* 移动端容器：最大 28rem 居中，防止横向溢出 */
+      .page-frame {
+        width: 100%;
+        max-width: 28rem;
+        margin: 0 auto;
+      }
+      body {
+        overflow-x: hidden;
+      }
+      /* 返回头部：sticky 置顶，z-index 高于对话内容 */
+      .chat-header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background-color: color-mix(in srgb, var(--gm-background) 90%, transparent);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+      }
+      /* 对话流：垂直排列，气泡间距 12px（gap-3） */
+      .chat-flow {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      /* 气泡分组：头像 + 气泡，右侧消息右对齐 */
+      .msg-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .msg-row--right {
+        justify-content: flex-end;
+      }
+      /* 气泡最大宽度 85%，防止溢出 */
+      .chat-bubble {
+        max-width: 85%;
+        min-width: 0;
+      }
+    </style>
+
+    <!-- 返回头部 -->
+    <header class="chat-header border-b border-border">
+      <div class="page-frame flex items-center gap-2 px-3 h-14">
+        <button
+          data-dom-id="back-home"
+          type="button"
+          aria-label="返回上一页"
+          class="w-11 h-11 inline-flex items-center justify-center rounded-full text-ink-2 active:bg-muted shrink-0"
+        >
+          <i data-lucide="chevron-left" class="w-5 h-5"></i>
+        </button>
+        <h1 class="flex-1 text-center text-[16px] font-semibold text-foreground truncate">地质助手</h1>
+        <span class="gm-chip text-[11px] shrink-0">知识库问答</span>
+      </div>
+    </header>
+
+    <!-- 对话流 -->
+    <section class="chat-flow px-4 py-4" aria-label="对话记录">
+      <!-- 助手欢迎气泡 -->
+      <div class="msg-row">
+        <div class="w-8 h-8 rounded-full bg-primary text-primary-foreground inline-flex items-center justify-center shrink-0" aria-hidden="true">
+          <i data-lucide="bot" class="w-4 h-4"></i>
+        </div>
+        <div class="chat-bubble max-w-[85%] bg-card border border-border rounded-lg rounded-tl-sm px-4 py-3 text-[14px] leading-relaxed text-foreground">
+          你好，我是地质助手！可以问我路线、岩石、矿物或考试重点相关问题，我会基于知识库回答。
+        </div>
+      </div>
+
+      <!-- 建议问题 -->
+      <div class="flex flex-wrap gap-2 pt-1 pl-10" aria-label="建议问题">
+        <button type="button" class="gm-chip">马山路线需要看什么？</button>
+        <button type="button" class="gm-chip">柱状节理怎么形成？</button>
+        <button type="button" class="gm-chip">花岗岩和玄武岩的区别</button>
+        <button type="button" class="gm-chip">一票否决有哪些？</button>
+      </div>
+
+      <!-- 用户问题气泡 -->
+      <div class="msg-row msg-row--right">
+        <div class="chat-bubble max-w-[85%] bg-primary text-primary-foreground rounded-lg rounded-tr-sm px-4 py-3 text-[14px] leading-relaxed">
+          柱状节理是怎么形成的？
+        </div>
+      </div>
+
+      <!-- 助手回答气泡 -->
+      <div class="msg-row">
+        <div class="w-8 h-8 rounded-full bg-primary text-primary-foreground inline-flex items-center justify-center shrink-0" aria-hidden="true">
+          <i data-lucide="bot" class="w-4 h-4"></i>
+        </div>
+        <div class="chat-bubble max-w-[85%] bg-card border border-border rounded-lg rounded-tl-sm px-4 py-3 text-[14px] leading-relaxed text-foreground">
+          <p>柱状节理是岩浆（以玄武岩为主）在冷却收缩过程中形成的多边形柱状破裂构造。当熔岩缓慢均匀冷却时，体积收缩产生垂直于冷却面的张应力，岩石沿规则方向开裂，形成五边形或六边形柱体。</p>
+          <p class="mt-3">在马山路线中可以观察到典型的玄武岩柱状节理剖面，是理解岩浆冷却收缩机理的经典实例。</p>
+          <div class="mt-3 flex">
+            <span class="gm-chip text-[11px] bg-primary-soft text-ink-2">
+              <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+              来源：知识库 · 马山路线（2 个段落）
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 输入栏 -->
+    <div class="bg-card border-t border-border p-3">
+      <div class="page-frame gm-row">
+        <input
+          type="text"
+          class="gm-input flex-1 min-w-0"
+          placeholder="输入地质问题…"
+          aria-label="输入地质问题"
+        />
+        <button
+          type="button"
+          aria-label="发送问题"
+          class="w-11 h-11 shrink-0 rounded-full bg-primary text-primary-foreground inline-flex items-center justify-center"
+        >
+          <i data-lucide="send" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <footer class="py-6 text-center text-xs text-ink-3">
+      GeoMate · 威海地质野外实习助手
+    </footer>
+  </main>
+    <script>lucide.createIcons();</script>
+    <!-- GeoMate 导航与交互层 -->
+    <script src="../assets/js/nav.js"></script>
+    <!-- GeoMate 地质助手对话功能 -->
+    <script src="../assets/js/chat.js"></script>
+</body>
+</html>
