@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, validator
 
 
 # ── KeyPoint schema (supports both string and object) ──────────
@@ -53,7 +53,7 @@ class RouteCreate(BaseModel):
     location: str = Field(..., min_length=1, max_length=200)
     geological_type: str = Field(..., min_length=1, max_length=100)
     description: str = Field(..., min_length=1)
-    difficulty: str = Field(default="easy", pattern="^(easy|medium|hard)$")
+    difficulty: str = Field(default="easy", regex="^(easy|medium|hard)$")
     learning_objectives: list[str] | None = None
     key_points: list[str | KeyPointInput] | None = None
     precautions: list[str] | None = None
@@ -69,7 +69,7 @@ class RouteUpdate(BaseModel):
     location: str | None = Field(default=None, min_length=1, max_length=200)
     geological_type: str | None = Field(default=None, min_length=1, max_length=100)
     description: str | None = Field(default=None, min_length=1)
-    difficulty: str | None = Field(default=None, pattern="^(easy|medium|hard)$")
+    difficulty: str | None = Field(default=None, regex="^(easy|medium|hard)$")
     learning_objectives: list[str] | None = None
     key_points: list[str | KeyPointInput] | None = None
     precautions: list[str] | None = None
@@ -99,9 +99,10 @@ class RouteOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
+    class Config:
+        orm_mode = True
 
-    @field_validator("key_points", mode="before")
+    @validator("key_points", pre=True)
     @classmethod
     def _normalize_key_points(cls, v):
         return normalize_key_points(v)
@@ -123,4 +124,5 @@ class RouteSummary(BaseModel):
     order_index: int | None = None
     duration_hours: float | None = None
 
-    model_config = {"from_attributes": True}
+    class Config:
+        orm_mode = True

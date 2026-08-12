@@ -43,7 +43,7 @@ def get_plan_service(db: AsyncSession = Depends(get_db)) -> StudyPlanService:
 async def list_plans(
     user_id: int = Query(..., gt=0, description="用户ID"),
     plan_date: date | None = Query(default=None, description="筛选日期"),
-    status: str | None = Query(default=None, pattern="^(pending|completed)$"),
+    status: str | None = Query(default=None, regex="^(pending|completed)$"),
     category: str | None = Query(default=None, description="筛选分类"),
     service: StudyPlanService = Depends(get_plan_service),
 ):

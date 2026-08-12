@@ -18,7 +18,8 @@ class DocumentOut(BaseModel):
     error_message: str | None = None
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    class Config:
+        orm_mode = True
 
 
 class DocumentListOut(BaseModel):

@@ -20,10 +20,16 @@ android {
         }
 
         python {
-            buildPython "python3"
+            // 目标 Python 版本（需 ≥3.9 以支持后端代码语法）
+            version "3.11"
+            // 构建机 Python（用于 venv/pip），需含 venv 模块
+            buildPython "D:/GeoMate_Android_venv/Scripts/python.exe"
             pip {
-                // 从 python/requirements.txt 安装依赖（Chaquopy 会挑选 Android 可用包）
-                install "-r", "requirements.txt"
+                // Chaquopy 依赖：从 requirements.txt 安装（Android 可用包）
+                install "-r", "C:/Users/sennei kuanhou/Desktop/GeoMate/android_app/app/src/main/python/requirements.txt"
+                // 使用 Chaquopy 默认索引（chaquo.com/pypi，提供 Android wheel）
+                // chaquo.com 国内访问慢，加大超时并启用重试
+                options "--timeout", "120", "--retries", "10"
             }
         }
     }

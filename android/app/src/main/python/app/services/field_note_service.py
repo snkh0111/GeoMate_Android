@@ -58,7 +58,7 @@ class FieldNoteService:
         self, data: FieldNoteCreate, idempotency_key: str | None = None,
     ) -> FieldNote:
         """Create a new geological observation point record."""
-        note = FieldNote(**data.model_dump())
+        note = FieldNote(**data.dict())
         if idempotency_key:
             note.idempotency_key = idempotency_key
         self.db.add(note)
@@ -72,7 +72,7 @@ class FieldNoteService:
         note = await self.db.get(FieldNote, note_id)
         if not note:
             return None
-        update_data = data.model_dump(exclude_unset=True)
+        update_data = data.dict(exclude_unset=True)
         for key, value in update_data.items():
             setattr(note, key, value)
         await self.db.commit()

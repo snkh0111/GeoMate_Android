@@ -37,7 +37,7 @@ class RouteService:
 
     async def create_route(self, data: RouteCreate) -> FieldRoute:
         """Create a new route."""
-        route = FieldRoute(**data.model_dump())
+        route = FieldRoute(**data.dict())
         self.db.add(route)
         await self.db.commit()
         await self.db.refresh(route)
@@ -51,7 +51,7 @@ class RouteService:
             return None
 
         # Only update fields that were explicitly provided (not None)
-        update_data = data.model_dump(exclude_unset=True)
+        update_data = data.dict(exclude_unset=True)
         for key, value in update_data.items():
             setattr(route, key, value)
 

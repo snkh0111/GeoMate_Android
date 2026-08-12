@@ -52,7 +52,7 @@ class StudyPlanService:
 
     async def create_plan(self, data: PlanCreate) -> StudyPlan:
         """Create a new plan item."""
-        plan = StudyPlan(**data.model_dump())
+        plan = StudyPlan(**data.dict())
         self.db.add(plan)
         await self.db.commit()
         await self.db.refresh(plan)
@@ -63,7 +63,7 @@ class StudyPlanService:
         plan = await self.db.get(StudyPlan, plan_id)
         if not plan:
             return None
-        update_data = data.model_dump(exclude_unset=True)
+        update_data = data.dict(exclude_unset=True)
         for key, value in update_data.items():
             setattr(plan, key, value)
         await self.db.commit()

@@ -83,9 +83,9 @@ async def analyze_document(
         "routes_found": len(analysis.routes),
         "knowledge_points_found": len(analysis.knowledge_points),
         "study_tasks_found": len(analysis.study_tasks),
-        "routes": [r.model_dump() for r in analysis.routes],
-        "knowledge_points": [k.model_dump() for k in analysis.knowledge_points],
-        "study_tasks": [t.model_dump() for t in analysis.study_tasks],
+        "routes": [r.dict() for r in analysis.routes],
+        "knowledge_points": [k.dict() for k in analysis.knowledge_points],
+        "study_tasks": [t.dict() for t in analysis.study_tasks],
     }
 
 

@@ -18,8 +18,8 @@ class PlanCreate(BaseModel):
     plan_date: date = Field(..., alias="date", description="计划日期 (YYYY-MM-DD)")
     task_name: str = Field(..., min_length=1, max_length=300)
     content: str | None = Field(default=None, description="详细说明")
-    status: str = Field(default="pending", pattern="^(pending|completed)$")
-    priority: str = Field(default="medium", pattern="^(high|medium|low)$")
+    status: str = Field(default="pending", regex="^(pending|completed)$")
+    priority: str = Field(default="medium", regex="^(high|medium|low)$")
     category: str | None = Field(
         default=None,
         description="分类: 技能/矿物/岩石/构造/安全/考试/路线复习/地貌"
@@ -33,15 +33,15 @@ class PlanUpdate(BaseModel):
     plan_date: date | None = Field(default=None, alias="date")
     task_name: str | None = Field(default=None, min_length=1, max_length=300)
     content: str | None = None
-    status: str | None = Field(default=None, pattern="^(pending|completed)$")
-    priority: str | None = Field(default=None, pattern="^(high|medium|low)$")
+    status: str | None = Field(default=None, regex="^(pending|completed)$")
+    priority: str | None = Field(default=None, regex="^(high|medium|low)$")
     category: str | None = None
     order_index: int | None = Field(default=None, ge=0)
 
 
 class PlanToggleStatus(BaseModel):
     """Toggle task completion status."""
-    status: str = Field(..., pattern="^(pending|completed)$")
+    status: str = Field(..., regex="^(pending|completed)$")
 
 
 # ── Response schemas ─────────────────────────────────────────
@@ -61,7 +61,9 @@ class PlanOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True, "populate_by_name": True}
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
 
 
 class PlanListOut(BaseModel):

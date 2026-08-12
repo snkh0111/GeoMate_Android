@@ -21,7 +21,8 @@ class DocumentOut(BaseModel):
     parsed_at: datetime | None = None
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    class Config:
+        orm_mode = True
 
 
 class DocumentListOut(BaseModel):
