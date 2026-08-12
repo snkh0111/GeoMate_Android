@@ -26,6 +26,7 @@
     // 其他
     "btn-plan": "plans.html",
     "menu-notes": "notes.html",
+    "menu-docs": "knowledge.html",
     "menu-ai-chat": "ai-chat.html",
   };
 
@@ -88,4 +89,13 @@
 
   // 暴露给其他脚本
   window.GeoMateNav = { go, getParam };
+
+  // ── 登录守卫：未登录一律回到登录页 ──
+  document.addEventListener("DOMContentLoaded", function () {
+    try {
+      if (window.GeoMate && !GeoMate.currentUser() && !/login\.html/.test(location.href)) {
+        location.href = "./login.html";
+      }
+    } catch (e) { /* ignore */ }
+  });
 })();

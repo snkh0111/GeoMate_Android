@@ -157,7 +157,7 @@ async def list_documents(
     docs = await service.list_documents()
     return DocumentListOut(
         total=len(docs),
-        items=[DocumentOut.model_validate(d) for d in docs],
+        items=[DocumentOut.from_orm(d) for d in docs],
     )
 
 
@@ -170,7 +170,7 @@ async def get_document(
     doc = await service.get_document(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="文档不存在")
-    return DocumentOut.model_validate(doc)
+    return DocumentOut.from_orm(doc)
 
 
 @router.delete("/documents/{document_id}")

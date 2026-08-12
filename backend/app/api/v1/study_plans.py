@@ -60,7 +60,7 @@ async def list_plans(
     )
     return PlanListOut(
         total=len(plans),
-        items=[PlanOut.model_validate(p) for p in plans],
+        items=[PlanOut.from_orm(p) for p in plans],
     )
 
 
@@ -96,7 +96,7 @@ async def get_daily_plans(
             total_tasks=d["total_tasks"],
             completed_tasks=d["completed_tasks"],
             completion_rate=d["completion_rate"],
-            items=[PlanOut.model_validate(p) for p in d["items"]],
+            items=[PlanOut.from_orm(p) for p in d["items"]],
         )
         for d in daily
     ]
@@ -127,7 +127,7 @@ async def create_plan(
 ):
     """Create a new study plan item."""
     plan = await service.create_plan(data)
-    return PlanOut.model_validate(plan)
+    return PlanOut.from_orm(plan)
 
 
 # ── Toggle status (快捷完成/取消完成) ───────────────────────
@@ -145,7 +145,7 @@ async def toggle_plan_status(
     plan = await service.toggle_status(plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="计划项不存在")
-    return PlanOut.model_validate(plan)
+    return PlanOut.from_orm(plan)
 
 
 # ── Update ───────────────────────────────────────────────────
@@ -160,7 +160,7 @@ async def update_plan(
     plan = await service.update_plan(plan_id, data)
     if not plan:
         raise HTTPException(status_code=404, detail="计划项不存在")
-    return PlanOut.model_validate(plan)
+    return PlanOut.from_orm(plan)
 
 
 # ── Delete ───────────────────────────────────────────────────

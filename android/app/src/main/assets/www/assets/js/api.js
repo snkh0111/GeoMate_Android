@@ -7,13 +7,43 @@
   "use strict";
 
   const BASE = "http://127.0.0.1:8000/api/v1";
+  const USER_KEY = "geomate_user";
+
+  // Restore session from localStorage
   let _userId = null;
+  function loadUser() {
+    try {
+      const raw = localStorage.getItem(USER_KEY);
+      if (raw) {
+        const u = JSON.parse(raw);
+        _userId = u.id || null;
+        return u;
+      }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
 
   window.GeoMate = {
     // ── Config ──
     get baseUrl() { return BASE; },
     get userId() { return _userId; },
     setUserId(id) { _userId = id; },
+
+    // ── Session ──
+    currentUser() { return loadUser(); },
+    saveUser(user) {
+      _userId = user.id;
+      localStorage.setItem(USER_KEY, JSON.stringify({
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name || user.username,
+        email: user.email || "",
+      }));
+    },
+    logout() {
+      _userId = null;
+      localStorage.removeItem(USER_KEY);
+    },
 
     // ── HTTP helpers ──
     async _get(path) {
@@ -52,14 +82,40 @@
     },
 
     // ── Users ──
-    async register(username, email, password, displayName) {
-      _userId = null;
+    async register(username, password, email, displayName) {
       const data = await this._post("/users/register", {
-        username, email, password,
+        username, password,
+        email: email || undefined,
         display_name: displayName || username,
       });
-      _userId = data.id;
+      this.saveUser(data);
       return data;
+    },
+    async login(username, password) {
+      const data = await this._post("/users/login", { username, password });
+      this.saveUser(data);
+      return data;
+    },
+
+    // ── Documents ──
+    async uploadDocument(userId, file) {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(BASE + `/documents/upload?user_id=${userId || _userId}`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `上传失败 (${res.status})`);
+      }
+      return res.json();
+    },
+    async listDocuments(userId) {
+      return this._get(`/documents?user_id=${userId || _userId}`);
+    },
+    async autoGenerate(docId, userId) {
+      return this._post(`/documents/${docId}/auto-generate?user_id=${userId || _userId}`, {});
     },
 
     // ── Routes ──

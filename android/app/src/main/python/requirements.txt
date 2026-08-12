@@ -12,3 +12,5 @@ numpy
 python-dotenv
 httpx
 aiofiles
+# 纯 Python PDF 解析（Android 无 PyMuPDF wheel 时的兜底）
+pypdf

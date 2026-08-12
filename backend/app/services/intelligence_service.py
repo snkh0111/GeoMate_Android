@@ -49,15 +49,41 @@ class IntelligenceService:
         if not user_message.strip():
             raise ValueError("文档中没有可分析的文字内容")
 
-        # Validate API key availability
+        # API key availability
         from app.config import settings
         key = api_key or settings.ANTHROPIC_API_KEY
+
         if not key or key == "your-api-key-here":
-            raise ValueError(
-                "请提供 Anthropic API Key。\n"
-                "方式一: 在 backend/.env 中设置 ANTHROPIC_API_KEY=sk-ant-...\n"
-                "方式二: 通过 API 参数传入 api_key=sk-ant-..."
+            # ── Offline rule-based analysis (no API key) ──
+            logger.info("No API key — using rule-based analysis for doc %d", doc.id)
+            from app.ai.rule_analyzer import analyze as rule_analyze
+
+            analysis = rule_analyze(parsed)
+            doc.status = "completed"
+            doc.parsed_content = {
+                **doc.parsed_content,
+                "analysis": {
+                    "summary": analysis.summary,
+                    "route_count": len(analysis.routes),
+                    "knowledge_point_count": len(analysis.knowledge_points),
+                    "study_task_count": len(analysis.study_tasks),
+                    "raw_json": "",
+                    "data": analysis.dict(),
+                    "mode": "rule",
+                    "analyzed_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+                },
+            }
+            await self.db.commit()
+            logger.info(
+                "Rule analysis complete: %d routes, %d points, %d tasks",
+                len(analysis.routes), len(analysis.knowledge_points), len(analysis.study_tasks),
             )
+            return {
+                "analysis": analysis,
+                "raw_json": "",
+                "document_id": doc.id,
+                "mode": "rule",
+            }
 
         logger.info("Analyzing doc %d: %d sections, %d chars", doc.id, len(parsed.sections), len(user_message))
 
@@ -238,12 +264,20 @@ class IntelligenceService:
         return doc
 
     def _get_analysis(self, doc: AnalysisDocument) -> AIAnalysisOutput:
-        """Extract AIAnalysisOutput from document's stored analysis."""
+        """Extract AIAnalysisOutput from document's stored analysis.
+
+        Supports two storage modes:
+        - LLM mode: raw JSON string in `raw_json`
+        - Rule mode: pre-validated structure in `data` (offline analyzer)
+        """
         if not doc.parsed_content:
             raise ValueError("请先解析文档（POST /documents/{id}/parse）")
         analysis_data = doc.parsed_content.get("analysis")
         if not analysis_data:
             raise ValueError("请先运行 AI 分析（POST /intelligence/analyze/{id}）")
+
+        if analysis_data.get("data"):
+            return AIAnalysisOutput.parse_obj(analysis_data["data"])
 
         raw_json = analysis_data.get("raw_json", "{}")
         return self._parse_and_validate(raw_json)
@@ -295,7 +329,7 @@ class IntelligenceService:
         for _ in range(3):
             try:
                 data = json.loads(cleaned)
-                return AIAnalysisOutput.model_validate(data)
+                return AIAnalysisOutput.parse_obj(data)
             except json.JSONDecodeError as e:
                 errors.append(f"JSON解析错误: {e}")
                 cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)

@@ -507,12 +507,11 @@ body {
             <!-- 个人资料卡 -->
             <section data-region="profile-card" class="gm-card p-4">
                 <div class="gm-row">
-                    <div class="gm-avatar bg-primary text-primary-foreground text-lg font-semibold" aria-label="头像">王</div>
+                    <div id="profile-avatar" class="gm-avatar bg-primary text-primary-foreground text-lg font-semibold" aria-label="头像">G</div>
                     <div class="flex-1 min-w-0">
-                        <div class="text-[17px] font-semibold leading-tight">王小明</div>
-                        <div class="mt-1 text-ink-2 text-[13px] leading-snug">2023级 地理科学1班 · 学号 2023010101</div>
+                        <div id="profile-name" class="text-[17px] font-semibold leading-tight">未登录</div>
+                        <div id="profile-sub" class="mt-1 text-ink-2 text-[13px] leading-snug">@username</div>
                     </div>
-                    <button type="button" class="gm-icon-btn bg-muted text-ink-2" aria-label="账号设置"><i data-lucide="settings" class="w-4 h-4"></i></button>
                 </div>
             </section>
 
@@ -520,15 +519,15 @@ body {
             <section data-region="stats" class="gm-card p-4 mt-4">
                 <div class="stats-grid">
                     <div class="text-center">
-                        <div class="text-xl font-semibold tabular-nums">14</div>
+                        <div id="stat-done" class="text-xl font-semibold tabular-nums">0</div>
                         <div class="mt-1 text-ink-3 text-[12px]">完成计划</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-xl font-semibold tabular-nums">4</div>
+                        <div id="stat-notes" class="text-xl font-semibold tabular-nums">0</div>
                         <div class="mt-1 text-ink-3 text-[12px]">野外记录</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-xl font-semibold tabular-nums">8</div>
+                        <div id="stat-docs" class="text-xl font-semibold tabular-nums">0</div>
                         <div class="mt-1 text-ink-3 text-[12px]">上传文档</div>
                     </div>
                 </div>
@@ -536,7 +535,7 @@ body {
 
             <!-- 菜单列表 -->
             <section data-region="menu" class="gm-card mt-4 overflow-hidden divide-y divide-border">
-                <a href="#" class="menu-row gm-row h-14 px-4">
+                <a href="#" data-dom-id="menu-docs" class="menu-row gm-row h-14 px-4">
                     <div class="gm-icon-tile gm-icon-tile-sm"><i data-lucide="file-text" class="w-4 h-4"></i></div>
                     <span class="flex-1 min-w-0 text-[15px]">我的文档</span>
                     <i data-lucide="chevron-right" class="w-5 h-5 text-ink-3 shrink-0"></i>
@@ -546,14 +545,9 @@ body {
                     <span class="flex-1 min-w-0 text-[15px]">我的野外记录</span>
                     <i data-lucide="chevron-right" class="w-5 h-5 text-ink-3 shrink-0"></i>
                 </a>
-                <a href="#" class="menu-row gm-row h-14 px-4">
-                    <div class="gm-icon-tile gm-icon-tile-sm"><i data-lucide="download" class="w-4 h-4"></i></div>
-                    <span class="flex-1 min-w-0 text-[15px]">离线数据</span>
-                    <i data-lucide="chevron-right" class="w-5 h-5 text-ink-3 shrink-0"></i>
-                </a>
-                <a href="#" class="menu-row gm-row h-14 px-4">
-                    <div class="gm-icon-tile gm-icon-tile-sm"><i data-lucide="settings" class="w-4 h-4"></i></div>
-                    <span class="flex-1 min-w-0 text-[15px]">设置</span>
+                <a href="#" data-dom-id="menu-ai-chat" class="menu-row gm-row h-14 px-4">
+                    <div class="gm-icon-tile gm-icon-tile-sm"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                    <span class="flex-1 min-w-0 text-[15px]">AI 问答</span>
                     <i data-lucide="chevron-right" class="w-5 h-5 text-ink-3 shrink-0"></i>
                 </a>
                 <a href="#" class="menu-row gm-row h-14 px-4">
@@ -562,6 +556,9 @@ body {
                     <i data-lucide="chevron-right" class="w-5 h-5 text-ink-3 shrink-0"></i>
                 </a>
             </section>
+
+            <!-- 退出登录 -->
+            <button id="logout-btn" class="mt-4 w-full h-12 rounded-full text-[15px] font-semibold" style="background:var(--gm-muted);color:var(--gm-state-error)">退出登录</button>
 
             <!-- 版本 -->
             <div data-region="version" class="text-center text-ink-3 text-[12px] py-4">GeoMate v1.0.1 · 威海地质野外实习助手</div>
@@ -574,5 +571,39 @@ body {
     <script>lucide.createIcons();</script>
     <!-- GeoMate 导航与交互层 -->
     <script src="../assets/js/nav.js"></script>
+    <script src="../assets/js/api.js"></script>
+    <script>
+    (function () {
+      "use strict";
+      var user = GeoMate.currentUser();
+      if (!user) { location.href = "./login.html"; return; }
+
+      var name = user.display_name || user.username;
+      document.getElementById("profile-avatar").textContent = name.charAt(0);
+      document.getElementById("profile-name").textContent = name;
+      document.getElementById("profile-sub").textContent = "@" + user.username;
+
+      // Load stats
+      (async function () {
+        try {
+          var stats = await GeoMate.getPlanStats(user.id);
+          document.getElementById("stat-done").textContent = (stats && (stats.completed || 0)) || 0;
+        } catch (e) {}
+        try {
+          var notes = await GeoMate.getNotes(user.id, 1, 50);
+          document.getElementById("stat-notes").textContent = (notes && notes.total) || 0;
+        } catch (e) {}
+        try {
+          var docs = await GeoMate.listDocuments(user.id);
+          document.getElementById("stat-docs").textContent = (docs && docs.total) || 0;
+        } catch (e) {}
+      })();
+
+      document.getElementById("logout-btn").addEventListener("click", function () {
+        GeoMate.logout();
+        location.href = "./login.html";
+      });
+    })();
+    </script>
 </body>
 </html>

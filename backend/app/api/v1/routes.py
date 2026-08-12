@@ -45,7 +45,7 @@ async def list_routes(
     routes = await service.list_routes()
     return RouteListOut(
         total=len(routes),
-        items=[RouteOut.model_validate(r) for r in routes],
+        items=[RouteOut.from_orm(r) for r in routes],
     )
 
 
@@ -64,7 +64,7 @@ async def get_route(
     route = await service.get_route(route_id)
     if not route:
         raise HTTPException(status_code=404, detail="路线不存在")
-    return RouteOut.model_validate(route)
+    return RouteOut.from_orm(route)
 
 
 # ── Create ───────────────────────────────────────────────────
@@ -81,7 +81,7 @@ async def create_route(
     """
     try:
         route = await service.create_route(data)
-        return RouteOut.model_validate(route)
+        return RouteOut.from_orm(route)
     except Exception as e:
         logger.exception("Failed to create route")
         raise HTTPException(status_code=400, detail=f"创建路线失败: {str(e)}")
@@ -99,7 +99,7 @@ async def update_route(
     route = await service.update_route(route_id, data)
     if not route:
         raise HTTPException(status_code=404, detail="路线不存在")
-    return RouteOut.model_validate(route)
+    return RouteOut.from_orm(route)
 
 
 # ── Delete ───────────────────────────────────────────────────

@@ -502,68 +502,57 @@ body {
       <div class="max-w-md mx-auto w-full px-5">
         <header class="flex items-center justify-between gap-4 pt-6 pb-5">
           <div class="min-w-0">
-            <p class="text-[13px] text-ink-3">8月11日 · 实习第3天</p>
-            <h1 class="mt-2 text-2xl font-semibold tracking-tight">上午好，王小明</h1>
+            <p class="text-[13px] text-ink-3" id="user-subtitle">@username</p>
+            <h1 class="mt-2 text-2xl font-semibold tracking-tight" id="user-name">GeoMate</h1>
           </div>
-          <div class="gm-avatar flex shrink-0 items-center justify-center bg-primary-soft text-[17px] font-semibold text-primary">王</div>
+          <div id="user-avatar" class="gm-avatar flex shrink-0 items-center justify-center bg-primary-soft text-[17px] font-semibold text-primary">G</div>
         </header>
         <div class="flex flex-col gap-4 pb-2">
-          <section class="gm-card p-4">
-            <div class="flex items-center justify-between gap-3">
-              <h2 class="gm-section-title">今日计划</h2>
-              <span class="shrink-0 text-[13px] text-ink-2">2/5 已完成</span>
-            </div>
-            <div class="gm-progress mt-4"><div class="gm-progress-bar" style="width:40%"></div></div>
-            <ul class="mt-4 flex flex-col gap-3">
-              <li class="flex min-w-0 items-center gap-3">
-                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"><i data-lucide="check" class="h-3.5 w-3.5"></i></span>
-                <span class="min-w-0 text-[14px] leading-snug text-ink-3 line-through">预习马山玄武岩路线资料</span>
-              </li>
-              <li class="flex min-w-0 items-center gap-3">
-                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"><i data-lucide="check" class="h-3.5 w-3.5"></i></span>
-                <span class="min-w-0 text-[14px] leading-snug text-ink-3 line-through">整理占甲埠村花岗岩笔记</span>
-              </li>
-              <li class="flex min-w-0 items-center gap-3">
-                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-card"></span>
-                <span class="min-w-0 text-[14px] leading-snug font-medium text-primary">背诵矿物鉴定口诀</span>
-              </li>
-            </ul>
-            <a href="#" data-dom-id="entry-plans" class="mt-4 flex items-center justify-end text-[13px] font-medium text-primary">查看全部计划 &gt;</a>
-          </section>
-          <a href="#" data-dom-id="cta-route-detail" class="gm-card flex items-start gap-3 p-4">
-            <span class="gm-icon-tile gm-icon-tile-lg"><i data-lucide="map" class="h-5 w-5"></i></span>
-            <span class="flex min-w-0 flex-col gap-2">
-              <span class="gm-chip w-fit">路线 02 · 明天出发</span>
-              <span class="text-[17px] font-semibold leading-snug">马山火山喷出岩路线</span>
-              <span class="flex min-w-0 items-center gap-2 text-[13px] leading-snug text-ink-2">
-                <i data-lucide="map-pin" class="h-3.5 w-3.5 shrink-0"></i>
-                <span class="min-w-0">烟台市福山区 · 约8小时 · 中等</span>
-              </span>
-            </span>
-          </a>
-          <section class="gm-card-flat bg-primary-soft p-4">
+          <!-- 上传实习资料（核心入口） -->
+          <section class="gm-card p-5">
             <div class="gm-row">
-              <span class="gm-icon-tile bg-card"><i data-lucide="bot" class="h-5 w-5"></i></span>
+              <span class="gm-icon-tile gm-icon-tile-lg"><i data-lucide="upload" class="h-5 w-5"></i></span>
               <div class="min-w-0">
-                <h2 class="text-[16px] font-semibold leading-snug">地质问答助手</h2>
-                <p class="mt-2 text-[13px] leading-snug text-ink-2">基于知识库回答路线、岩石、矿物问题</p>
+                <h2 class="text-[17px] font-semibold leading-snug">上传实习资料</h2>
+                <p class="mt-2 text-[13px] leading-snug text-ink-2">上传 PDF 后自动生成学习计划、实习路线与知识库</p>
               </div>
             </div>
-            <div class="mt-4 flex flex-wrap gap-2">
-              <button type="button" class="gm-chip">柱状节理怎么形成？</button>
-              <button type="button" class="gm-chip">马山路线看什么？</button>
-            </div>
-            <a href="#" data-dom-id="cta-ai-chat" class="mt-4 flex items-center justify-end text-[13px] font-medium text-primary">开始提问 &gt;</a>
+            <button type="button" id="upload-btn" class="gm-btn gm-btn-primary mt-4">上传 PDF 并自动生成</button>
+            <input id="upload-input" type="file" accept="application/pdf,.pdf" hidden>
+            <p id="upload-status" class="mt-3 text-[13px] leading-snug text-ink-3"></p>
           </section>
+
+          <!-- 数据概览 -->
+          <section class="gm-card p-4">
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <div id="stat-routes" class="text-xl font-semibold tabular-nums">0</div>
+                <div class="mt-1 text-[12px] text-ink-3">实习路线</div>
+              </div>
+              <div>
+                <div id="stat-plans" class="text-xl font-semibold tabular-nums">0</div>
+                <div class="mt-1 text-[12px] text-ink-3">学习计划</div>
+              </div>
+              <div>
+                <div id="stat-knowledge" class="text-xl font-semibold tabular-nums">0</div>
+                <div class="mt-1 text-[12px] text-ink-3">知识文档</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 空状态提示 -->
+          <section id="empty-state" class="gm-card-flat p-5 text-center">
+            <i data-lucide="file-question" class="mx-auto h-8 w-8 text-ink-3"></i>
+            <p class="mt-3 text-[14px] font-medium">还没有数据</p>
+            <p class="mt-2 text-[13px] leading-snug text-ink-2">上传你的实习 PDF，AI 将自动为你规划路线、计划与知识库</p>
+          </section>
+
+          <!-- 快捷入口 -->
           <section aria-label="快捷入口">
             <div class="grid grid-cols-4 gap-3">
               <a href="#" data-dom-id="entry-knowledge" class="flex min-w-0 flex-col items-center gap-2">
                 <span class="gm-icon-tile"><i data-lucide="book-open" class="h-5 w-5"></i></span>
                 <span class="text-[13px] leading-none text-ink-2">知识库</span>
-              </a>
-              <a href="#" data-dom-id="entry-notes" class="flex min-w-0 flex-col items-center gap-2">
-                <span class="gm-icon-tile"><i data-lucide="map-pin" class="h-5 w-5"></i></span>
-                <span class="text-[13px] leading-none text-ink-2">野外记录</span>
               </a>
               <a href="#" data-dom-id="entry-plans" class="flex min-w-0 flex-col items-center gap-2">
                 <span class="gm-icon-tile"><i data-lucide="calendar-check" class="h-5 w-5"></i></span>
@@ -572,6 +561,10 @@ body {
               <a href="#" data-dom-id="entry-docs" class="flex min-w-0 flex-col items-center gap-2">
                 <span class="gm-icon-tile"><i data-lucide="file-text" class="h-5 w-5"></i></span>
                 <span class="text-[13px] leading-none text-ink-2">我的文档</span>
+              </a>
+              <a href="#" data-dom-id="cta-ai-chat" class="flex min-w-0 flex-col items-center gap-2">
+                <span class="gm-icon-tile"><i data-lucide="bot" class="h-5 w-5"></i></span>
+                <span class="text-[13px] leading-none text-ink-2">AI 问答</span>
               </a>
             </div>
           </section>

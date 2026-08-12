@@ -10,7 +10,7 @@ import android.webkit.WebViewClient;
 /**
  * GeoMate Android 主界面。
  *
- * 1. 加载内嵌 H5 前端（assets/www/pages/home.html）
+ * 1. 加载内嵌 H5 登录页（assets/www/pages/login.html）
  * 2. 在后台线程通过 Chaquopy 启动内嵌 FastAPI 服务（127.0.0.1:8000）
  *
  * 前端页面通过 http://127.0.0.1:8000 访问后端接口。
@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
         settings.setAllowUniversalAccessFromFileURLs(false);
 
         webView.setWebViewClient(new WebViewClient());
-        webView.loadUrl("file:///android_asset/www/pages/home.html");
+        webView.loadUrl("file:///android_asset/www/pages/login.html");
 
         startBackendServer();
     }

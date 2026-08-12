@@ -90,7 +90,7 @@ async def list_documents(
     docs = await service.list_documents(user_id=user_id)
     return DocumentListOut(
         total=len(docs),
-        items=[DocumentOut.model_validate(d) for d in docs],
+        items=[DocumentOut.from_orm(d) for d in docs],
     )
 
 
@@ -105,7 +105,7 @@ async def get_document(
     doc = await service.get_document(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="文档不存在")
-    return DocumentOut.model_validate(doc)
+    return DocumentOut.from_orm(doc)
 
 
 # ── Delete ───────────────────────────────────────────────────
@@ -230,6 +230,107 @@ async def get_section_detail(
         page_start=s.page_start, page_end=s.page_end,
         level=s.level, parent_index=s.parent_index,
     )
+
+
+# ── One-shot auto-generate ────────────────────────────────────
+
+@router.post("/{document_id}/auto-generate")
+async def auto_generate(
+    document_id: int,
+    user_id: int = Query(..., gt=0, description="目标用户 ID"),
+    start_date: str | None = Query(default=None, description="实习开始日期 (YYYY-MM-DD)"),
+    db: AsyncSession = Depends(get_db),
+):
+    """One-click pipeline: parse → analyze → routes → plans → knowledge base.
+
+    Runs the full offline workflow on an uploaded PDF:
+      1. POST /parse        — extract text & split into sections
+      2. POST /analyze      — AI analysis (falls back to rule engine w/o API key)
+      3. generate routes    — create FieldRoute records
+      4. generate plans     — create StudyPlan records for the user
+      5. ingest knowledge   — chunk + embed into the vector knowledge base
+
+    Returns a summary of everything that was created.
+    """
+    from datetime import date as date_type
+
+    from app.models.document import AnalysisDocument
+    from app.services.document_parser import DocumentParser
+    from app.services.intelligence_service import IntelligenceService
+    from app.services.knowledge_service import KnowledgeService
+
+    parser = DocumentParser(db)
+    svc = IntelligenceService(db)
+
+    start = date_type.fromisoformat(start_date) if start_date else None
+
+    # 1. Parse
+    try:
+        parsed = await parser.parse(document_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="PDF 文件丢失，请重新上传")
+    except Exception as e:
+        logger.exception("Parse failed for document %d", document_id)
+        raise HTTPException(status_code=500, detail=f"解析失败: {str(e)}")
+
+    # 2. Analyze (rule engine when no API key)
+    try:
+        analysis_result = await svc.analyze(document_id)
+    except Exception as e:
+        logger.exception("Analysis failed for document %d", document_id)
+        raise HTTPException(status_code=500, detail=f"分析失败: {str(e)}")
+
+    analysis = analysis_result["analysis"]
+    mode = analysis_result.get("mode", "llm")
+
+    # 3. Generate routes
+    routes_result = await svc.generate_routes(document_id)
+
+    # 4. Generate study plans
+    plans_result = await svc.generate_study_plans(
+        document_id=document_id, user_id=user_id, start_date=start,
+    )
+
+    # 5. Ingest into knowledge base (best-effort; must not fail the pipeline)
+    knowledge_id = None
+    knowledge_message = ""
+    try:
+        doc = await db.get(AnalysisDocument, document_id)
+        if doc and doc.file_path:
+            ksvc = KnowledgeService(db)
+            kdoc = await ksvc.upload_and_ingest(doc.file_path, doc.filename)
+            knowledge_id = kdoc.id
+            knowledge_message = f"知识库已收录 {kdoc.chunk_count or 0} 个片段"
+    except Exception as e:
+        logger.warning("Knowledge ingest failed for doc %d: %s", document_id, e)
+        knowledge_message = f"知识库收录失败: {str(e)[:120]}"
+
+    logger.info(
+        "Auto-generate done for doc %d (mode=%s): %d routes, %d plans, kb=%s",
+        document_id, mode,
+        routes_result.get("created", 0),
+        plans_result.get("created", 0),
+        knowledge_id,
+    )
+
+    return {
+        "document_id": document_id,
+        "mode": mode,
+        "status": "completed",
+        "summary": analysis.summary,
+        "routes": routes_result,
+        "plans": plans_result,
+        "knowledge": {
+            "document_id": knowledge_id,
+            "message": knowledge_message or "未收录到知识库",
+        },
+        "message": (
+            f"已生成 {routes_result.get('created', 0)} 条路线、"
+            f"{plans_result.get('created', 0)} 项学习计划；{knowledge_message}"
+        ),
+    }
 
 
 # ── Auto-generate Routes ────────────────────────────────────

@@ -151,12 +151,20 @@ def _detect_heading_level(line: str) -> int:
 # ── Extraction ────────────────────────────────────────────────
 
 def extract_pdf_text(file_path: str | Path) -> PDFDocument:
-    """Extract all text from a PDF file, preserving page structure."""
-    import fitz
+    """Extract all text from a PDF file, preserving page structure.
 
+    Uses PyMuPDF (fitz) when available (desktop). Falls back to the
+    pure-Python pypdf library so PDF parsing also works on Android
+    (Chaquopy), where PyMuPDF has no wheel.
+    """
     file_path = Path(file_path)
     if not file_path.exists():
         raise FileNotFoundError(f"PDF file not found: {file_path}")
+
+    try:
+        import fitz  # PyMuPDF — desktop only
+    except ImportError:
+        return _extract_with_pypdf(file_path)
 
     doc = fitz.open(str(file_path))
     total_pages = doc.page_count
@@ -170,6 +178,31 @@ def extract_pdf_text(file_path: str | Path) -> PDFDocument:
             pages.append(PDFPage(page_number=i, text=text))
 
     doc.close()
+
+    return PDFDocument(
+        filename=file_path.name,
+        total_pages=total_pages,
+        pages=pages,
+    )
+
+
+def _extract_with_pypdf(file_path: Path) -> PDFDocument:
+    """Fallback PDF text extraction using the pure-Python pypdf library."""
+    from pypdf import PdfReader
+
+    reader = PdfReader(str(file_path))
+    total_pages = len(reader.pages)
+    pages: list[PDFPage] = []
+
+    for i, page in enumerate(reader.pages, start=1):
+        try:
+            text = page.extract_text() or ""
+        except Exception:
+            text = ""
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        text = text.strip()
+        if text:
+            pages.append(PDFPage(page_number=i, text=text))
 
     return PDFDocument(
         filename=file_path.name,

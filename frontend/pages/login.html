@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 · GeoMate</title>
+    <style>
+/* GeoMate 移动端 — 品牌设计令牌（与首页一致） */
+:root {
+  --gm-background: #F5F5F7;
+  --gm-foreground: #1D1D1F;
+  --gm-card: #FFFFFF;
+  --gm-card-foreground: #1D1D1F;
+  --gm-primary: #2E7D5B;
+  --gm-primary-foreground: #FFFFFF;
+  --gm-muted: #ECECF1;
+  --gm-muted-foreground: #6E6E73;
+  --gm-border: #E3E3E8;
+  --gm-input: #D1D1D6;
+  --gm-ring: #2E7D5B;
+  --gm-ink-2: #6E6E73;
+  --gm-ink-3: #8E8E93;
+  --gm-surface-2: #ECECF1;
+  --gm-primary-soft: #E4F1EA;
+  --gm-state-error: #FF3B30;
+  --gm-state-success: #34C759;
+  --gm-radius-sm: 10px;
+  --gm-radius-md: 12px;
+  --gm-radius-lg: 16px;
+  --gm-font-sans: "DM Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --gm-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --gm-shadow-2: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+@keyframes gm-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+html, body {
+  font-family: var(--gm-font-sans);
+  color: var(--gm-foreground);
+  background: var(--gm-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+.gm-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; width: 100%; height: 50px; border-radius: 999px;
+  font-size: 15px; font-weight: 600; line-height: 1; border: 0; cursor: pointer;
+  transition: background-color 180ms ease, transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 180ms ease;
+}
+.gm-btn:active { transform: scale(0.97); }
+.gm-btn-primary { background: var(--gm-primary); color: var(--gm-primary-foreground); box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.18); }
+.gm-btn-primary:hover { background: #27704F; }
+.gm-btn-primary:disabled { opacity: 0.6; }
+
+.gm-input {
+  width: 100%; height: 50px; padding: 0 16px; border-radius: var(--gm-radius-md);
+  border: 1px solid var(--gm-input); background: var(--gm-card); color: var(--gm-foreground);
+  font-size: 15px; outline: none; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.gm-input::placeholder { color: var(--gm-ink-3); }
+.gm-input:focus { border-color: var(--gm-ring); box-shadow: 0 0 0 3px rgba(46, 125, 91, 0.18); }
+
+.auth-card {
+  background: var(--gm-card); border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-lg); box-shadow: var(--gm-shadow-1);
+  padding: 28px 24px; animation: gm-rise 340ms cubic-bezier(0.3, 0, 0, 1) both;
+}
+.brand-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 18px;
+  background: var(--gm-primary); color: #fff; box-shadow: var(--gm-shadow-2);
+}
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--gm-muted); border-radius: 999px; padding: 4px; }
+.seg button {
+  height: 38px; border: 0; border-radius: 999px; font-size: 14px; font-weight: 600;
+  background: transparent; color: var(--gm-ink-2); cursor: pointer; transition: all 160ms ease;
+}
+.seg button.active { background: var(--gm-card); color: var(--gm-primary); box-shadow: var(--gm-shadow-1); }
+.auth-error { color: var(--gm-state-error); font-size: 13px; min-height: 18px; }
+.auth-hint { color: var(--gm-ink-3); font-size: 12px; }
+</style>
+</head>
+<body class="min-h-screen">
+    <main class="flex min-h-screen flex-col justify-center px-5" style="min-height:100vh">
+        <div class="mx-auto w-full" style="max-width:26rem">
+            <div class="mb-8 text-center">
+                <div class="brand-mark mx-auto mb-4">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                </div>
+                <h1 class="text-2xl font-semibold tracking-tight">GeoMate</h1>
+                <p class="mt-2 text-[13px] leading-snug" style="color:var(--gm-ink-2)">威海地质野外实习助手</p>
+            </div>
+
+            <div class="auth-card">
+                <div class="seg mb-5" id="auth-seg">
+                    <button type="button" id="seg-login" class="active">登录</button>
+                    <button type="button" id="seg-register">注册</button>
+                </div>
+
+                <form id="auth-form" novalidate>
+                    <div class="mb-4">
+                        <label class="mb-2 block text-[13px] font-medium" style="color:var(--gm-ink-2)">用户名</label>
+                        <input id="f-username" class="gm-input" type="text" placeholder="请输入用户名" autocomplete="username" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="mb-2 block text-[13px] font-medium" style="color:var(--gm-ink-2)">密码</label>
+                        <input id="f-password" class="gm-input" type="password" placeholder="请输入密码" autocomplete="current-password" required>
+                    </div>
+                    <div id="row-display" class="mb-2" style="display:none">
+                        <label class="mb-2 block text-[13px] font-medium" style="color:var(--gm-ink-2)">昵称（可选）</label>
+                        <input id="f-display" class="gm-input" type="text" placeholder="展示给你的名字">
+                    </div>
+                    <div class="auth-error" id="auth-error"></div>
+                    <button type="submit" id="auth-submit" class="gm-btn gm-btn-primary">登 录</button>
+                </form>
+            </div>
+
+            <div class="mt-6 text-center">
+                <p class="auth-hint" id="backend-status">正在连接后端...</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/login.js"></script>
+</body>
+</html>

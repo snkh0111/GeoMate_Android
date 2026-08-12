@@ -61,7 +61,7 @@ async def list_notes(
     )
     return FieldNoteListOut(
         total=len(notes),
-        items=[FieldNoteOut.model_validate(n) for n in notes],
+        items=[FieldNoteOut.from_orm(n) for n in notes],
     )
 
 
@@ -97,7 +97,7 @@ async def get_note(
     note = await service.get_note(note_id)
     if not note:
         raise HTTPException(status_code=404, detail="记录不存在")
-    return FieldNoteOut.model_validate(note)
+    return FieldNoteOut.from_orm(note)
 
 
 # ── Create ───────────────────────────────────────────────────
@@ -120,10 +120,10 @@ async def create_note(
     if idempotency_key:
         existing = await service.find_by_idempotency_key(idempotency_key)
         if existing:
-            return FieldNoteOut.model_validate(existing)
+            return FieldNoteOut.from_orm(existing)
 
     note = await service.create_note(data, idempotency_key=idempotency_key)
-    return FieldNoteOut.model_validate(note)
+    return FieldNoteOut.from_orm(note)
 
 
 # ── Update ───────────────────────────────────────────────────
@@ -138,7 +138,7 @@ async def update_note(
     note = await service.update_note(note_id, data)
     if not note:
         raise HTTPException(status_code=404, detail="记录不存在")
-    return FieldNoteOut.model_validate(note)
+    return FieldNoteOut.from_orm(note)
 
 
 # ── Delete ───────────────────────────────────────────────────

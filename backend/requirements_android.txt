@@ -27,6 +27,8 @@ numpy>=1.24,<2.0
 
 # PDF (same as original)
 pymupdf>=1.25
+# Pure-Python fallback for Android (no PyMuPDF wheel)
+pypdf>=4.0
 
 # Image (same as original)
 Pillow>=10.0

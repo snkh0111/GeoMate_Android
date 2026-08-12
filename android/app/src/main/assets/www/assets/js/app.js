@@ -1,12 +1,14 @@
 /**
  * GeoMate Android — App Bootstrap
- * Initializes the app: seeds data, loads home page content from API.
+ * 1. 检查后端健康（重试容忍冷启动）
+ * 2. 校验登录状态（未登录 → login.html）
+ * 3. 加载真实数据填充首页（空库时保持空白提示）
+ * 4. 提供上传 PDF → 自动生成路线/计划/知识库
  */
 (function () {
   "use strict";
 
   const $ = (sel) => document.querySelector(sel);
-  const $$ = (sel) => document.querySelectorAll(sel);
 
   // ── Status banner ──
   function showStatus(text, type) {
@@ -35,63 +37,112 @@
     return false;
   }
 
-  // ── Ensure user + seed data ──
-  async function initApp() {
-    // Register / login default user
-    try {
-      const user = await GeoMate.register(
-        "geomate_user",
-        "user@geomate.cn",
-        "geomate123",
-        "GeoMate"
-      );
-      console.log("User:", user);
-    } catch (e) {
-      // User may already exist — try fetching existing data
-      console.log("User already exists, skipping register");
+  // ── Auth guard ──
+  function requireLogin() {
+    const user = GeoMate.currentUser();
+    if (!user) {
+      location.href = "./login.html";
+      return null;
     }
-
-    // Seed routes
-    try {
-      await GeoMate.seedRoutes();
-      console.log("Routes seeded");
-    } catch (e) { console.log("Routes seed skipped:", e.message); }
-
-    // Seed study plans
-    try {
-      // Use userId=1 as fallback
-      const uid = GeoMate.userId || 1;
-      const plans = await GeoMate.seedPlans(uid);
-      console.log("Plans seeded:", plans);
-    } catch (e) { console.log("Plans seed skipped:", e.message); }
-
-    // Seed field notes
-    try {
-      const uid = GeoMate.userId || 1;
-      await GeoMate.seedNotes(uid);
-      console.log("Notes seeded");
-    } catch (e) { console.log("Notes seed skipped:", e.message); }
+    return user;
   }
 
-  // ── Load home page data ──
+  // ── Render user + stats ──
+  function renderUser(user) {
+    const nameEl = $("#user-name");
+    const avatarEl = $("#user-avatar");
+    const subEl = $("#user-subtitle");
+    if (nameEl) nameEl.textContent = user.display_name || user.username;
+    if (avatarEl) {
+      avatarEl.textContent = (user.display_name || user.username || "G").charAt(0);
+    }
+    if (subEl) subEl.textContent = `@${user.username}`;
+  }
+
+  // ── Load home page data (real data; empty DB stays blank) ──
   async function loadHomeData() {
+    const user = GeoMate.currentUser();
+    if (!user) return;
+
     try {
-      // Routes summary
-      const routes = await GeoMate.getRoutes(1, 5);
-      console.log("Routes:", routes);
+      const routes = await GeoMate.getRoutes(1, 20);
+      const stats = await GeoMate.getPlanStats(user.id);
+      const kstats = await GeoMate.getKnowledgeStats();
 
-      // Plan stats
-      const stats = await GeoMate.getPlanStats(1);
-      console.log("Plan stats:", stats);
+      const routeCountEl = $("#stat-routes");
+      const planCountEl = $("#stat-plans");
+      const kdCountEl = $("#stat-knowledge");
+      if (routeCountEl) routeCountEl.textContent = (routes && routes.total) || 0;
+      if (planCountEl) planCountEl.textContent = (stats && stats.total) || 0;
+      if (kdCountEl) kdCountEl.textContent = (kstats && kstats.document_count) || 0;
 
-      // Populate UI elements if they exist
-      const routeCountEl = document.getElementById("route-count-num");
-      if (routeCountEl) routeCountEl.textContent = routes.total || "7";
+      // Empty state hint
+      const emptyEl = $("#empty-state");
+      if (emptyEl) {
+        const totalCount = ((routes && routes.total) || 0) + ((stats && stats.total) || 0);
+        if (totalCount > 0) {
+          emptyEl.style.display = "none";
+        } else {
+          emptyEl.style.display = "";
+        }
+      }
 
       showStatus("数据加载完成 ✓", "ok");
     } catch (e) {
       console.error("Home data load failed:", e);
+      showStatus("首页数据加载失败", "error");
     }
+  }
+
+  // ── Upload PDF → auto-generate ──
+  async function handleUpload(file) {
+    const user = GeoMate.currentUser();
+    if (!user || !file) return;
+
+    const statusEl = $("#upload-status");
+    if (statusEl) statusEl.textContent = "上传中...";
+
+    let doc;
+    try {
+      doc = await GeoMate.uploadDocument(user.id, file);
+    } catch (e) {
+      if (statusEl) { statusEl.textContent = "上传失败：" + e.message; statusEl.className = "text-red-500 text-[13px]"; }
+      return;
+    }
+
+    if (statusEl) statusEl.textContent = "已上传，正在解析并生成计划路线与知识库（首次需约 10-30 秒）...";
+    showStatus("AI 生成中...", "loading");
+
+    try {
+      const result = await GeoMate.autoGenerate(doc.document_id, user.id);
+      console.log("Auto-generate result:", result);
+      if (statusEl) {
+        statusEl.textContent = "生成完成：" + (result.message || "路线/计划/知识库已生成");
+        statusEl.className = "text-green-600 text-[13px]";
+      }
+      showStatus("生成完成 ✓", "ok");
+      await loadHomeData();
+    } catch (e) {
+      console.error("Auto-generate failed:", e);
+      if (statusEl) {
+        statusEl.textContent = "生成失败：" + (e.message || "未知错误");
+        statusEl.className = "text-red-500 text-[13px]";
+      }
+      showStatus("生成失败", "error");
+    }
+  }
+
+  function bindUpload() {
+    const input = $("#upload-input");
+    const btn = $("#upload-btn");
+    if (!input || !btn) return;
+
+    btn.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      if (file) handleUpload(file);
+      input.value = ""; // allow re-selecting the same file
+    });
   }
 
   // ── Init ──
@@ -101,7 +152,11 @@
     const ok = await checkBackend();
     if (!ok) return;
 
-    await initApp();
+    const user = requireLogin();
+    if (!user) return;
+
+    renderUser(user);
+    bindUpload();
     await loadHomeData();
 
     console.log("GeoMate ready.");
