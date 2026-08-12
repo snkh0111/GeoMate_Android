@@ -1,0 +1,39 @@
+# ── GeoMate Android Backend Dependencies ──
+# For use with Chaquopy (Android Python SDK)
+# pip install -r requirements_android.txt
+
+# FastAPI (same as original)
+fastapi>=0.115
+uvicorn[standard]>=0.34
+python-multipart>=0.0.19
+
+# Database (same as original)
+sqlalchemy>=2.0
+aiosqlite>=0.20
+
+# Auth (same as original)
+python-jose[cryptography]>=3.3
+passlib[bcrypt]>=1.7
+pydantic[email]>=2.10
+
+# Vector Search — REPLACED: ChromaDB → numpy (pure Python, no native deps)
+# chromadb removed (native deps incompatible with Android/Chaquopy)
+# LightVectorStore uses SQLite + numpy cosine similarity instead
+numpy>=1.24,<2.0
+
+# Embeddings (same as original — Chaquopy supports sentence-transformers)
+sentence-transformers>=3.0,<6.0
+
+# PDF (same as original)
+pymupdf>=1.25
+
+# Image (same as original)
+Pillow>=10.0
+
+# Utils (same as original)
+python-dotenv>=1.0
+httpx>=0.28
+aiofiles>=24.0
+
+# AI LLM (Anthropic Claude — needed for AI tutor / document analysis)
+anthropic>=0.40

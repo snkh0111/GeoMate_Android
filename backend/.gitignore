@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Data
+data/
+*.db
+*.sqlite3
+
+# Environment
+.env
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+data/uploads/*
+!data/uploads/.gitkeep
+
+# Temp
+*.log
+tmp/
+
+# Test scripts
+test_*.py
