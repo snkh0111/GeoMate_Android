@@ -16,19 +16,23 @@
     el.className = type === "error" ? "text-red-500" : type === "loading" ? "text-muted-foreground" : "text-green-600";
   }
 
-  // ── Check backend health ──
-  async function checkBackend() {
-    try {
-      showStatus("连接后端...", "loading");
-      const h = await GeoMate.health();
-      console.log("Backend:", h);
-      showStatus("后端已连接 ✓", "ok");
-      return true;
-    } catch (e) {
-      console.error("Backend unreachable:", e);
-      showStatus("后端未启动，请在终端运行: python run.py", "error");
-      return false;
+  // ── Check backend health (retry to tolerate slow first cold start) ──
+  async function checkBackend(maxRetries = 15, intervalMs = 700) {
+    showStatus("连接后端...", "loading");
+    for (let i = 1; i <= maxRetries; i++) {
+      try {
+        const h = await GeoMate.health();
+        console.log("Backend:", h);
+        showStatus("后端已连接 ✓", "ok");
+        return true;
+      } catch (e) {
+        console.log(`Backend not ready (${i}/${maxRetries})`, e.message || e);
+        await new Promise((r) => setTimeout(r, intervalMs));
+      }
     }
+    console.error("Backend unreachable after retries");
+    showStatus("后端未启动，请确认内嵌服务已启动", "error");
+    return false;
   }
 
   // ── Ensure user + seed data ──

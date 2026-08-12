@@ -14,10 +14,6 @@ import threading
 
 import uvicorn
 
-from app.config import settings
-
-logger = logging.getLogger(__name__)
-
 # Set up basic logging
 logging.basicConfig(
     level=logging.INFO,
@@ -42,6 +38,17 @@ def _setup_android_env():
         logger.info("Android app data dir: %s", app_data)
     except Exception as e:
         logger.warning("Could not get Android context: %s", e)
+
+
+# Must run BEFORE importing app.config: config.py resolves BASE_DIR from
+# ANDROID_APP_DATA_DIR on Android. (config.py also falls back to resolving the
+# app-private dir itself, so this is a belt-and-braces approach.)
+if IS_ANDROID:
+    _setup_android_env()
+
+from app.config import settings  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 
 def start_server(host: str = "127.0.0.1", port: int = 8000):
@@ -92,10 +99,3 @@ def start_server_async(host: str = "127.0.0.1", port: int = 8000):
     thread.start()
     logger.info("Server thread started")
     return thread
-
-
-# ── Module-level auto-start for Chaquopy ──
-# When Chaquopy loads this module, auto-start the server.
-# The Android app imports this in its onCreate().
-if IS_ANDROID:
-    _server_thread = start_server_async()

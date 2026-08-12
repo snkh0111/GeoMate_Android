@@ -17,6 +17,17 @@ def _get_base_dir() -> Path:
     android_data = os.environ.get("ANDROID_APP_DATA_DIR")
     if android_data:
         return Path(android_data)
+    # Android (Chaquopy): resolve app-private dir directly via Java context.
+    # This must not depend on env vars being set first — config.py is imported
+    # before android_bridge._setup_android_env() runs.
+    if hasattr(sys, "getandroidapilevel"):
+        try:
+            from java import jclass
+
+            context = jclass("com.chaquo.python.Python").getApplicationContext()
+            return Path(context.getFilesDir().getAbsolutePath())
+        except Exception:
+            pass
     # Fallback: relative to this file
     return Path(__file__).resolve().parent.parent
 
@@ -50,10 +61,11 @@ class Settings:
     # Anthropic
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 
-    # CORS — allow localhost (Android WebView connects via localhost)
+    # CORS — allow localhost (Android WebView connects via localhost).
+    # WebView pages loaded from file:// send Origin: null, so it must be allowed.
     CORS_ORIGINS: str = os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000,null",
     )
 
     # Upload
