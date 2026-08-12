@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.GeoMate" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/gm_background</item>
+        <item name="android:statusBarColor">@color/gm_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace 'com.geomate.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.geomate.app"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1.0.0"
+
+        // Android 常用 CPU 架构（Chaquopy 需要）
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a"
+        }
+
+        python {
+            buildPython "python3"
+            pip {
+                // 从 python/requirements.txt 安装依赖（Chaquopy 会挑选 Android 可用包）
+                install "-r", "requirements.txt"
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // 便于查看日志
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+}

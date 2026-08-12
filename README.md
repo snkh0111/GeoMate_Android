@@ -48,6 +48,7 @@ GeoMate 为地质野外实习提供一体化支持：
 
 ```
 GeoMate_Android/
+├── android/        # Android 壳工程（WebView + Chaquopy 内嵌后端）
 ├── backend/        # 后端程序（FastAPI + SQLite + LightVectorStore）
 │   ├── app/        #   应用代码（API / 服务 / 模型 / AI RAG）
 │   ├── seed_data/  #   路线种子数据
@@ -60,6 +61,15 @@ GeoMate_Android/
 │   └── colors_and_type.css
 └── PROGRESS.md     # 产品进度（最新）
 ```
+
+## Android 打包
+
+`android/` 为 Android 工程（WebView + Chaquopy 内嵌后端）。构建需 JDK 17 + Android SDK：
+
+- 用 Android Studio 打开 `android/` 目录，等待 Gradle 同步
+- 直接 Run 到真机调试，或 Build > Generate APK 打包
+- 首次同步会下载 Gradle / AGP / Chaquopy 及 Python 依赖（需联网）
+
 
 ## 快速开始（桌面端开发测试）
 

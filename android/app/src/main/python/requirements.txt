@@ -1,0 +1,14 @@
+# Chaquopy 精简依赖 —— 只包含纯 Python 或 Android 预编译包。
+# 已移除：chromadb / sentence-transformers / torch（Android 不支持）
+#          pymupdf（fitz 延迟导入，Android 上 PDF 解析不可用但不阻塞启动）
+#          passlib / python-jose（代码中未实际使用）
+fastapi>=0.115
+uvicorn>=0.34
+python-multipart>=0.0.19
+sqlalchemy>=2.0
+aiosqlite>=0.20
+pydantic[email]>=2.10
+numpy>=1.24,<2.0
+python-dotenv>=1.0
+httpx>=0.28
+aiofiles>=24.0

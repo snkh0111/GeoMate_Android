@@ -16,7 +16,7 @@
 | 4 | 前后端联动测试 + 交互 bug 修复 | 完成 |
 | 5 | 端到端自测（后端 API / 前端页面 / AI 对话全链路） | 完成 |
 | 6 | 解决 Android 兼容两大阻塞：嵌入模型（torch）与前端 CDN 依赖 | 完成 |
-| 7 | 打包 APK（Android Studio Gradle + Chaquopy 集成） | 未开始 |
+| 7 | 打包 APK（Android Studio Gradle + Chaquopy 集成） | 进行中 |
 
 ## 阶段详情
 
