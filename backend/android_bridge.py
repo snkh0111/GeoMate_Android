@@ -20,6 +20,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
+logger = logging.getLogger(__name__)
+
 # Detect if running on Android (via Chaquopy)
 IS_ANDROID = hasattr(sys, "getandroidapilevel") or "chaquopy" in sys.modules
 
@@ -50,8 +52,6 @@ if IS_ANDROID:
     _setup_android_env()
 
 from app.config import settings  # noqa: E402
-
-logger = logging.getLogger(__name__)
 
 
 def get_last_error() -> str:
