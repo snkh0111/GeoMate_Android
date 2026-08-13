@@ -29,8 +29,8 @@
     $("#backend-status").textContent = text;
   }
 
-  // ── Backend probe (retry for cold start) ──
-  async function waitBackend(maxRetries = 20, intervalMs = 700) {
+  // ── Backend probe (retry for cold start; show real error via native bridge) ──
+  async function waitBackend(maxRetries = 60, intervalMs = 1000) {
     for (let i = 1; i <= maxRetries; i++) {
       try {
         await GeoMate.health();
@@ -39,12 +39,30 @@
         return true;
       } catch (e) {
         setStatus(`正在连接服务 (${i}/${maxRetries})...`);
+        const err = backendError();
+        if (err) {
+          setStatus("后端启动失败：" + err);
+          backendReady = false;
+          return false;
+        }
         await new Promise((r) => setTimeout(r, intervalMs));
       }
     }
     backendReady = false;
-    setStatus("后端未启动，请检查内嵌服务");
+    const err = backendError();
+    setStatus(err ? "后端启动失败：" + err : "后端未启动，请退出应用后重新打开");
     return false;
+  }
+
+  // 通过 Android 原生桥读取后端启动异常（仅 APK 内可用，浏览器中返回 null）
+  function backendError() {
+    try {
+      if (typeof AndroidNative !== "undefined" && AndroidNative.getBackendError) {
+        const e = AndroidNative.getBackendError();
+        if (e && e.trim() && !e.startsWith("bridge_error")) return e.trim();
+      }
+    } catch (err) { /* ignore */ }
+    return null;
   }
 
   // ── Submit ──

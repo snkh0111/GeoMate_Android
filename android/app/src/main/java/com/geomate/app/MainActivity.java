@@ -37,9 +37,24 @@ public class MainActivity extends Activity {
         settings.setAllowUniversalAccessFromFileURLs(false);
 
         webView.setWebViewClient(new WebViewClient());
+        // 暴露后端启动错误给 H5 页面（登录页可展示真实错误信息）
+        webView.addJavascriptInterface(new JsNativeBridge(), "AndroidNative");
         webView.loadUrl("file:///android_asset/www/pages/login.html");
 
         startBackendServer();
+    }
+
+    /** Java→JS 桥：H5 页面通过 window.AndroidNative.getBackendError() 读取后端启动错误。 */
+    private class JsNativeBridge {
+        @android.webkit.JavascriptInterface
+        public String getBackendError() {
+            try {
+                com.chaquo.python.Python py = com.chaquo.python.Python.getInstance();
+                return py.getModule("android_bridge").callAttr("get_last_error").toString();
+            } catch (Exception e) {
+                return "bridge_error: " + e;
+            }
+        }
     }
 
     /** 在后台线程启动内嵌 Python 后端服务（非阻塞）。 */

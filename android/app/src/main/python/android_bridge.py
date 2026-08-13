@@ -23,6 +23,9 @@ logging.basicConfig(
 # Detect if running on Android (via Chaquopy)
 IS_ANDROID = hasattr(sys, "getandroidapilevel") or "chaquopy" in sys.modules
 
+# 最近一次启动错误（供 UI 通过 get_last_error() 展示定位）
+LAST_ERROR = ""
+
 
 def _setup_android_env():
     """Set environment variables for Android runtime."""
@@ -51,6 +54,27 @@ from app.config import settings  # noqa: E402
 logger = logging.getLogger(__name__)
 
 
+def get_last_error() -> str:
+    """返回最近一次后端启动错误（供 Android UI 展示定位）。"""
+    return LAST_ERROR
+
+
+def _set_error(tag: str, exc: Exception) -> None:
+    """记录启动异常：写入内存变量 + 应用目录日志文件。"""
+    global LAST_ERROR
+    import traceback
+
+    tb = traceback.format_exc()
+    LAST_ERROR = f"[{tag}] {exc}\n{tb[-1500:]}"
+    logger.error("GeoMate backend error: %s", LAST_ERROR)
+    try:
+        base = os.environ.get("ANDROID_APP_DATA_DIR", ".")
+        with open(os.path.join(base, "geomate_backend.log"), "a", encoding="utf-8") as f:
+            f.write(f"\n===== {tag} =====\n{LAST_ERROR}\n")
+    except Exception:
+        pass
+
+
 def start_server(host: str = "127.0.0.1", port: int = 8000):
     """Start the FastAPI server. Blocks until the server is running.
 
@@ -62,6 +86,14 @@ def start_server(host: str = "127.0.0.1", port: int = 8000):
         host: Bind address (default 127.0.0.1 for local-only access).
         port: Port number (default 8000).
     """
+    try:
+        _start_server_impl(host, port)
+    except Exception as e:
+        _set_error("server_start", e)
+        raise
+
+
+def _start_server_impl(host: str, port: int):
     _setup_android_env()
 
     # Proxy fix: clear env vars that may interfere
