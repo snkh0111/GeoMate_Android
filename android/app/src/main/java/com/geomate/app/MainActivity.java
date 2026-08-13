@@ -62,7 +62,7 @@ public class MainActivity extends Activity {
         try {
             return com.chaquo.python.Python.getInstance();
         } catch (RuntimeException e) {
-            com.chaquo.python.Python.start(new com.chaquo.python.AndroidPlatform(this));
+            com.chaquo.python.Python.start(new com.chaquo.python.android.AndroidPlatform(this));
             return com.chaquo.python.Python.getInstance();
         }
     }
