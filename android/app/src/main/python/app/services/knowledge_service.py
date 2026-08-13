@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.ai.rag.retriever import QueryIntent, Retriever
 from app.models.knowledge import KnowledgeChunk, KnowledgeDocument
@@ -18,13 +18,13 @@ logger = logging.getLogger(__name__)
 class KnowledgeService:
     """Handles the full lifecycle of knowledge documents with geology metadata."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
         self.retriever = Retriever()
 
     # ── Upload / Ingest ───────────────────────────────────────
 
-    async def upload_and_ingest(
+    def upload_and_ingest(
         self,
         file_path: str,
         filename: str,
@@ -44,8 +44,8 @@ class KnowledgeService:
             file_size=file_size,
         )
         self.db.add(doc)
-        await self.db.commit()
-        await self.db.refresh(doc)
+        self.db.commit()
+        self.db.refresh(doc)
 
         try:
             # 2. Extract text
@@ -56,7 +56,7 @@ class KnowledgeService:
                 raise ValueError("PDF 中没有可提取的文本内容")
 
             # 3. Ingest with geology-aware chunking + metadata extraction
-            chunk_count = await self.retriever.ingest_document(
+            chunk_count = self.retriever.ingest_document(
                 pages=pages,
                 document_id=doc.id,
                 document_title=title,
@@ -75,8 +75,8 @@ class KnowledgeService:
                 )
                 self.db.add(chunk)
 
-            await self.db.commit()
-            await self.db.refresh(doc)
+            self.db.commit()
+            self.db.refresh(doc)
 
             logger.info(
                 "Document %d (%s) ingested: %d chunks from %d pages",
@@ -88,13 +88,13 @@ class KnowledgeService:
             logger.exception("Failed to ingest document %d", doc.id)
             doc.status = "error"
             doc.error_message = str(e)
-            await self.db.commit()
-            await self.db.refresh(doc)
+            self.db.commit()
+            self.db.refresh(doc)
             raise
 
     # ── Search ─────────────────────────────────────────────────
 
-    async def search(
+    def search(
         self,
         query: str,
         top_k: int = 5,
@@ -111,7 +111,7 @@ class KnowledgeService:
         When auto_filter=True, the system automatically detects intent
         from the query (e.g. "马山路线" → location=马山, category=路线).
         """
-        results = await self.retriever.search(
+        results = self.retriever.search(
             query=query,
             top_k=top_k,
             document_id=document_id,
@@ -155,29 +155,29 @@ class KnowledgeService:
 
     # ── CRUD ───────────────────────────────────────────────────
 
-    async def list_documents(self) -> list[KnowledgeDocument]:
-        result = await self.db.execute(
+    def list_documents(self) -> list[KnowledgeDocument]:
+        result = self.db.execute(
             select(KnowledgeDocument).order_by(KnowledgeDocument.created_at.desc())
         )
         return list(result.scalars().all())
 
-    async def get_document(self, document_id: int) -> KnowledgeDocument | None:
-        return await self.db.get(KnowledgeDocument, document_id)
+    def get_document(self, document_id: int) -> KnowledgeDocument | None:
+        return self.db.get(KnowledgeDocument, document_id)
 
-    async def delete_document(self, document_id: int) -> bool:
-        doc = await self.db.get(KnowledgeDocument, document_id)
+    def delete_document(self, document_id: int) -> bool:
+        doc = self.db.get(KnowledgeDocument, document_id)
         if not doc:
             return False
-        await self.retriever.delete_document(document_id)
-        await self.db.delete(doc)
-        await self.db.commit()
+        self.retriever.delete_document(document_id)
+        self.db.delete(doc)
+        self.db.commit()
         return True
 
-    async def get_stats(self) -> dict:
-        doc_count_result = await self.db.execute(
+    def get_stats(self) -> dict:
+        doc_count_result = self.db.execute(
             select(func.count(KnowledgeDocument.id))
         )
-        chunk_count_result = await self.db.execute(
+        chunk_count_result = self.db.execute(
             select(func.count(KnowledgeChunk.id))
         )
         vector_stats = self.retriever.stats()

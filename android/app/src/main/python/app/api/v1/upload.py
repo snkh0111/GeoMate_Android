@@ -18,7 +18,7 @@ MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 @router.post("")
-async def upload_image(
+def upload_image(
     file: UploadFile = File(..., description="Image file (jpg, png, webp, max 10MB)"),
 ):
     """Upload an image for use anywhere in GeoMate.
@@ -35,7 +35,7 @@ async def upload_image(
         )
 
     # Validate size
-    content = await file.read()
+    content = file.file.read()
     if len(content) > MAX_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="Image must be under 10MB")
 

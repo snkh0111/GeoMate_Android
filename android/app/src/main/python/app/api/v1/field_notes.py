@@ -17,7 +17,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
@@ -36,14 +36,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/notes", tags=["Field Notes"])
 
 
-def get_note_service(db: AsyncSession = Depends(get_db)) -> FieldNoteService:
+def get_note_service(db: Session = Depends(get_db)) -> FieldNoteService:
     return FieldNoteService(db)
 
 
 # ── List ─────────────────────────────────────────────────────
 
 @router.get("", response_model=FieldNoteListOut)
-async def list_notes(
+def list_notes(
     user_id: int | None = Query(default=None, gt=0, description="按用户筛选"),
     route_id: int | None = Query(default=None, gt=0, description="按路线筛选"),
     rock_type: str | None = Query(default=None, description="按岩石类型筛选"),
@@ -56,7 +56,7 @@ async def list_notes(
     - GET /notes?user_id=1&route_id=1 — Route 1 notes for user 1
     - GET /notes?rock_type=花岗岩 — all granite observations
     """
-    notes = await service.list_notes(
+    notes = service.list_notes(
         user_id=user_id, route_id=route_id, rock_type=rock_type,
     )
     return FieldNoteListOut(
@@ -68,7 +68,7 @@ async def list_notes(
 # ── GeoJSON (map layer) ─────────────────────────────────────
 
 @router.get("/geojson")
-async def get_notes_geojson(
+def get_notes_geojson(
     user_id: int | None = Query(default=None, gt=0),
     route_id: int | None = Query(default=None, gt=0),
     service: FieldNoteService = Depends(get_note_service),
@@ -78,14 +78,14 @@ async def get_notes_geojson(
     Only includes points with GPS coordinates.
     Use this endpoint to display observation points on a map.
     """
-    features = await service.list_geojson(user_id=user_id, route_id=route_id)
+    features = service.list_geojson(user_id=user_id, route_id=route_id)
     return {"type": "FeatureCollection", "features": features}
 
 
 # ── Detail ───────────────────────────────────────────────────
 
 @router.get("/{note_id}", response_model=FieldNoteOut)
-async def get_note(
+def get_note(
     note_id: int,
     service: FieldNoteService = Depends(get_note_service),
 ):
@@ -94,7 +94,7 @@ async def get_note(
     Returns full geological description, attitude data,
     GPS coordinates, specimen number, and photo URL.
     """
-    note = await service.get_note(note_id)
+    note = service.get_note(note_id)
     if not note:
         raise HTTPException(status_code=404, detail="记录不存在")
     return FieldNoteOut.from_orm(note)
@@ -103,7 +103,7 @@ async def get_note(
 # ── Create ───────────────────────────────────────────────────
 
 @router.post("", response_model=FieldNoteOut, status_code=201)
-async def create_note(
+def create_note(
     data: FieldNoteCreate,
     request: Request,
     service: FieldNoteService = Depends(get_note_service),
@@ -118,24 +118,24 @@ async def create_note(
 
     # Check for duplicate (offline sync retry)
     if idempotency_key:
-        existing = await service.find_by_idempotency_key(idempotency_key)
+        existing = service.find_by_idempotency_key(idempotency_key)
         if existing:
             return FieldNoteOut.from_orm(existing)
 
-    note = await service.create_note(data, idempotency_key=idempotency_key)
+    note = service.create_note(data, idempotency_key=idempotency_key)
     return FieldNoteOut.from_orm(note)
 
 
 # ── Update ───────────────────────────────────────────────────
 
 @router.put("/{note_id}", response_model=FieldNoteOut)
-async def update_note(
+def update_note(
     note_id: int,
     data: FieldNoteUpdate,
     service: FieldNoteService = Depends(get_note_service),
 ):
     """Update a field note. Only provided fields are changed."""
-    note = await service.update_note(note_id, data)
+    note = service.update_note(note_id, data)
     if not note:
         raise HTTPException(status_code=404, detail="记录不存在")
     return FieldNoteOut.from_orm(note)
@@ -144,12 +144,12 @@ async def update_note(
 # ── Delete ───────────────────────────────────────────────────
 
 @router.delete("/{note_id}")
-async def delete_note(
+def delete_note(
     note_id: int,
     service: FieldNoteService = Depends(get_note_service),
 ):
     """Delete a field note record."""
-    deleted = await service.delete_note(note_id)
+    deleted = service.delete_note(note_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="记录不存在")
     return {"message": "记录已删除", "note_id": note_id}
@@ -158,7 +158,7 @@ async def delete_note(
 # ── Seed ─────────────────────────────────────────────────────
 
 @router.post("/seed")
-async def seed_notes(
+def seed_notes(
     user_id: int = Query(..., gt=0, description="为指定用户创建演示数据"),
     force: bool = Query(default=False, description="强制重新生成"),
     service: FieldNoteService = Depends(get_note_service),
@@ -168,7 +168,7 @@ async def seed_notes(
     Creates 3 realistic geological observation point records
     with GPS coordinates, attitude measurements, and specimen numbers.
     """
-    result = await service.seed_notes(user_id=user_id, force=force)
+    result = service.seed_notes(user_id=user_id, force=force)
     if result["created"] > 0:
         return {
             "message": f"成功创建 {result['created']} 条演示野外记录",
@@ -185,7 +185,7 @@ async def seed_notes(
 # ── Photo Upload ─────────────────────────────────────────────
 
 @router.post("/upload-photo", response_model=PhotoUploadResponse)
-async def upload_photo(
+def upload_photo(
     file: UploadFile = File(...),
     note_id: int | None = Query(default=None, description="关联的野外记录 ID（可选）"),
 ):
@@ -205,7 +205,7 @@ async def upload_photo(
         )
 
     # Validate size (10MB)
-    content = await file.read()
+    content = file.file.read()
     size_mb = len(content) / (1024 * 1024)
     if size_mb > 10:
         raise HTTPException(status_code=400, detail="图片大小不能超过 10MB")

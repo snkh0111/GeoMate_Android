@@ -15,7 +15,7 @@ Endpoints:
 import logging
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
@@ -36,18 +36,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 
-def get_document_service(db: AsyncSession = Depends(get_db)) -> DocumentService:
+def get_document_service(db: Session = Depends(get_db)) -> DocumentService:
     return DocumentService(db)
 
 
-def get_parser(db: AsyncSession = Depends(get_db)) -> DocumentParser:
+def get_parser(db: Session = Depends(get_db)) -> DocumentParser:
     return DocumentParser(db)
 
 
 # ── Upload ────────────────────────────────────────────────────
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=201)
-async def upload_document(
+def upload_document(
     file: UploadFile = File(...),
     user_id: int = Query(..., gt=0, description="上传用户 ID"),
     service: DocumentService = Depends(get_document_service),
@@ -56,7 +56,7 @@ async def upload_document(
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="只支持 PDF 文件")
 
-    content = await file.read()
+    content = file.file.read()
     size_mb = len(content) / (1024 * 1024)
     if size_mb > settings.MAX_UPLOAD_SIZE_MB:
         raise HTTPException(
@@ -65,7 +65,7 @@ async def upload_document(
         )
 
     try:
-        doc = await service.upload(
+        doc = service.upload(
             user_id=user_id, filename=file.filename, content=content,
         )
     except Exception as e:
@@ -82,12 +82,12 @@ async def upload_document(
 # ── List ─────────────────────────────────────────────────────
 
 @router.get("", response_model=DocumentListOut)
-async def list_documents(
+def list_documents(
     user_id: int | None = Query(default=None, gt=0),
     service: DocumentService = Depends(get_document_service),
 ):
     """List uploaded documents, newest first."""
-    docs = await service.list_documents(user_id=user_id)
+    docs = service.list_documents(user_id=user_id)
     return DocumentListOut(
         total=len(docs),
         items=[DocumentOut.from_orm(d) for d in docs],
@@ -97,12 +97,12 @@ async def list_documents(
 # ── Detail ───────────────────────────────────────────────────
 
 @router.get("/{document_id}", response_model=DocumentOut)
-async def get_document(
+def get_document(
     document_id: int,
     service: DocumentService = Depends(get_document_service),
 ):
     """Get a single document's details."""
-    doc = await service.get_document(document_id)
+    doc = service.get_document(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="文档不存在")
     return DocumentOut.from_orm(doc)
@@ -111,12 +111,12 @@ async def get_document(
 # ── Delete ───────────────────────────────────────────────────
 
 @router.delete("/{document_id}")
-async def delete_document(
+def delete_document(
     document_id: int,
     service: DocumentService = Depends(get_document_service),
 ):
     """Delete a document and its file from disk."""
-    deleted = await service.delete_document(document_id)
+    deleted = service.delete_document(document_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="文档不存在")
     return {"message": "文档已删除", "document_id": document_id}
@@ -125,7 +125,7 @@ async def delete_document(
 # ── Parse ────────────────────────────────────────────────────
 
 @router.post("/{document_id}/parse", response_model=ParseResultOut)
-async def parse_document(
+def parse_document(
     document_id: int,
     parser: DocumentParser = Depends(get_parser),
 ):
@@ -138,7 +138,7 @@ async def parse_document(
     retrieved via GET /documents/{id}/content.
     """
     try:
-        parsed = await parser.parse(document_id)
+        parsed = parser.parse(document_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except FileNotFoundError:
@@ -171,7 +171,7 @@ async def parse_document(
 # ── View parsed content (summary) ────────────────────────────
 
 @router.get("/{document_id}/content", response_model=ParseResultOut)
-async def get_parsed_content(
+def get_parsed_content(
     document_id: int,
     parser: DocumentParser = Depends(get_parser),
 ):
@@ -180,7 +180,7 @@ async def get_parsed_content(
     Returns all section titles, page ranges, and content previews.
     Use GET /documents/{id}/sections/{n} for full section text.
     """
-    parsed = await parser.get_parsed(document_id)
+    parsed = parser.get_parsed(document_id)
     if not parsed:
         raise HTTPException(status_code=404, detail="文档尚未解析，请先 POST /parse")
 
@@ -208,13 +208,13 @@ async def get_parsed_content(
 # ── View single section (full text) ──────────────────────────
 
 @router.get("/{document_id}/sections/{section_index}", response_model=SectionDetailOut)
-async def get_section_detail(
+def get_section_detail(
     document_id: int,
     section_index: int,
     parser: DocumentParser = Depends(get_parser),
 ):
     """Get the full content of a single section."""
-    parsed = await parser.get_parsed(document_id)
+    parsed = parser.get_parsed(document_id)
     if not parsed:
         raise HTTPException(status_code=404, detail="文档尚未解析")
 
@@ -235,11 +235,11 @@ async def get_section_detail(
 # ── One-shot auto-generate ────────────────────────────────────
 
 @router.post("/{document_id}/auto-generate")
-async def auto_generate(
+def auto_generate(
     document_id: int,
     user_id: int = Query(..., gt=0, description="目标用户 ID"),
     start_date: str | None = Query(default=None, description="实习开始日期 (YYYY-MM-DD)"),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     """One-click pipeline: parse → analyze → routes → plans → knowledge base.
 
@@ -266,7 +266,7 @@ async def auto_generate(
 
     # 1. Parse
     try:
-        parsed = await parser.parse(document_id)
+        parsed = parser.parse(document_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except FileNotFoundError:
@@ -277,7 +277,7 @@ async def auto_generate(
 
     # 2. Analyze (rule engine when no API key)
     try:
-        analysis_result = await svc.analyze(document_id)
+        analysis_result = svc.analyze(document_id)
     except Exception as e:
         logger.exception("Analysis failed for document %d", document_id)
         raise HTTPException(status_code=500, detail=f"分析失败: {str(e)}")
@@ -286,10 +286,10 @@ async def auto_generate(
     mode = analysis_result.get("mode", "llm")
 
     # 3. Generate routes
-    routes_result = await svc.generate_routes(document_id)
+    routes_result = svc.generate_routes(document_id)
 
     # 4. Generate study plans
-    plans_result = await svc.generate_study_plans(
+    plans_result = svc.generate_study_plans(
         document_id=document_id, user_id=user_id, start_date=start,
     )
 
@@ -297,10 +297,10 @@ async def auto_generate(
     knowledge_id = None
     knowledge_message = ""
     try:
-        doc = await db.get(AnalysisDocument, document_id)
+        doc = db.get(AnalysisDocument, document_id)
         if doc and doc.file_path:
             ksvc = KnowledgeService(db)
-            kdoc = await ksvc.upload_and_ingest(doc.file_path, doc.filename)
+            kdoc = ksvc.upload_and_ingest(doc.file_path, doc.filename)
             knowledge_id = kdoc.id
             knowledge_message = f"知识库已收录 {kdoc.chunk_count or 0} 个片段"
     except Exception as e:
@@ -336,9 +336,9 @@ async def auto_generate(
 # ── Auto-generate Routes ────────────────────────────────────
 
 @router.post("/{document_id}/generate-routes")
-async def generate_routes(
+def generate_routes(
     document_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     """Generate FieldRoute records from AI analysis results.
 
@@ -353,7 +353,7 @@ async def generate_routes(
     """
     service = IntelligenceService(db)
     try:
-        result = await service.generate_routes(document_id)
+        result = service.generate_routes(document_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -366,11 +366,11 @@ async def generate_routes(
 # ── Auto-generate Study Plans ───────────────────────────────
 
 @router.post("/{document_id}/generate-plans")
-async def generate_plans(
+def generate_plans(
     document_id: int,
     user_id: int = Query(..., gt=0, description="目标用户 ID"),
     start_date: str | None = Query(default=None, description="实习开始日期 (YYYY-MM-DD)"),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     """Generate StudyPlan records from AI analysis results.
 
@@ -389,7 +389,7 @@ async def generate_plans(
 
     service = IntelligenceService(db)
     try:
-        result = await service.generate_study_plans(
+        result = service.generate_study_plans(
             document_id=document_id, user_id=user_id, start_date=start,
         )
     except ValueError as e:

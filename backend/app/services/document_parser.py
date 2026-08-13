@@ -7,7 +7,7 @@ for section detection. No LLM involved at this stage.
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.models.document import AnalysisDocument
 from app.utils.pdf import parse_pdf, ParsedDocument
@@ -25,10 +25,10 @@ class DocumentParser:
     4. Save ParsedDocument JSON to the database
     """
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
 
-    async def parse(self, document_id: int) -> ParsedDocument:
+    def parse(self, document_id: int) -> ParsedDocument:
         """Parse a document by ID. Updates the DB record with results.
 
         Args:
@@ -41,7 +41,7 @@ class DocumentParser:
             ValueError: If the document is not found.
             FileNotFoundError: If the PDF file is missing from disk.
         """
-        doc = await self.db.get(AnalysisDocument, document_id)
+        doc = self.db.get(AnalysisDocument, document_id)
         if not doc:
             raise ValueError(f"Document not found: id={document_id}")
 
@@ -57,8 +57,8 @@ class DocumentParser:
         doc.parsed_content = parsed.to_dict()
         doc.parsed_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
-        await self.db.commit()
-        await self.db.refresh(doc)
+        self.db.commit()
+        self.db.refresh(doc)
 
         logger.info(
             "Document %d parsed: %d pages, %d chars, %d sections",
@@ -66,12 +66,12 @@ class DocumentParser:
         )
         return parsed
 
-    async def get_parsed(self, document_id: int) -> ParsedDocument | None:
+    def get_parsed(self, document_id: int) -> ParsedDocument | None:
         """Retrieve parsed content from a previously parsed document.
 
         Returns None if the document hasn't been parsed yet.
         """
-        doc = await self.db.get(AnalysisDocument, document_id)
+        doc = self.db.get(AnalysisDocument, document_id)
         if not doc or not doc.parsed_content:
             return None
         return ParsedDocument.from_dict(doc.parsed_content)

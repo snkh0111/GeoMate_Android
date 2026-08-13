@@ -44,7 +44,7 @@ class Settings:
 
     # Database — SQLite file under data/
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", f"sqlite+aiosqlite:///{DATA_DIR}/geomate.db"
+        "DATABASE_URL", f"sqlite:///{DATA_DIR}/geomate.db"
     )
 
     # Vector Store — LightVectorStore (SQLite-backed, replaces ChromaDB on Android)

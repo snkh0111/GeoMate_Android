@@ -8,7 +8,7 @@ import logging
 from datetime import date, datetime
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.models.study_plan import StudyPlan
 from app.schemas.study_plan import PlanCreate, PlanUpdate
@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 class StudyPlanService:
     """Study plan CRUD + seed operations."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
 
     # ── CRUD ────────────────────────────────────────────────
 
-    async def list_plans(
+    def list_plans(
         self,
         user_id: int | None = None,
         plan_date: date | None = None,
@@ -43,55 +43,55 @@ class StudyPlanService:
         if category is not None:
             stmt = stmt.where(StudyPlan.category == category)
 
-        result = await self.db.execute(stmt)
+        result = self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_plan(self, plan_id: int) -> StudyPlan | None:
+    def get_plan(self, plan_id: int) -> StudyPlan | None:
         """Get a single plan item."""
-        return await self.db.get(StudyPlan, plan_id)
+        return self.db.get(StudyPlan, plan_id)
 
-    async def create_plan(self, data: PlanCreate) -> StudyPlan:
+    def create_plan(self, data: PlanCreate) -> StudyPlan:
         """Create a new plan item."""
         plan = StudyPlan(**data.dict())
         self.db.add(plan)
-        await self.db.commit()
-        await self.db.refresh(plan)
+        self.db.commit()
+        self.db.refresh(plan)
         return plan
 
-    async def update_plan(self, plan_id: int, data: PlanUpdate) -> StudyPlan | None:
+    def update_plan(self, plan_id: int, data: PlanUpdate) -> StudyPlan | None:
         """Update a plan item. Only provided fields are changed."""
-        plan = await self.db.get(StudyPlan, plan_id)
+        plan = self.db.get(StudyPlan, plan_id)
         if not plan:
             return None
         update_data = data.dict(exclude_unset=True)
         for key, value in update_data.items():
             setattr(plan, key, value)
-        await self.db.commit()
-        await self.db.refresh(plan)
+        self.db.commit()
+        self.db.refresh(plan)
         return plan
 
-    async def toggle_status(self, plan_id: int) -> StudyPlan | None:
+    def toggle_status(self, plan_id: int) -> StudyPlan | None:
         """Toggle a plan between pending and completed."""
-        plan = await self.db.get(StudyPlan, plan_id)
+        plan = self.db.get(StudyPlan, plan_id)
         if not plan:
             return None
         plan.status = "completed" if plan.status == "pending" else "pending"
-        await self.db.commit()
-        await self.db.refresh(plan)
+        self.db.commit()
+        self.db.refresh(plan)
         return plan
 
-    async def delete_plan(self, plan_id: int) -> bool:
+    def delete_plan(self, plan_id: int) -> bool:
         """Delete a plan item."""
-        plan = await self.db.get(StudyPlan, plan_id)
+        plan = self.db.get(StudyPlan, plan_id)
         if not plan:
             return False
-        await self.db.delete(plan)
-        await self.db.commit()
+        self.db.delete(plan)
+        self.db.commit()
         return True
 
     # ── Grouped queries ─────────────────────────────────────
 
-    async def get_daily_plans(
+    def get_daily_plans(
         self, user_id: int, plan_date: date | None = None
     ) -> list[dict]:
         """Get plans grouped by day, with completion stats per day.
@@ -107,7 +107,7 @@ class StudyPlanService:
         if plan_date:
             stmt = stmt.where(StudyPlan.plan_date == plan_date)
 
-        result = await self.db.execute(stmt)
+        result = self.db.execute(stmt)
         plans = result.scalars().all()
 
         # Group by date
@@ -129,10 +129,10 @@ class StudyPlanService:
 
         return daily
 
-    async def get_stats(self, user_id: int) -> dict:
+    def get_stats(self, user_id: int) -> dict:
         """Get overall study statistics for a user."""
         stmt = select(StudyPlan).where(StudyPlan.user_id == user_id)
-        result = await self.db.execute(stmt)
+        result = self.db.execute(stmt)
         plans = result.scalars().all()
 
         total = len(plans)
@@ -177,7 +177,7 @@ class StudyPlanService:
 
     # ── Seed ────────────────────────────────────────────────
 
-    async def seed_plans(self, user_id: int, force: bool = False) -> dict:
+    def seed_plans(self, user_id: int, force: bool = False) -> dict:
         """Generate a 7-day study plan for a user.
 
         The plan follows the actual Weihai field practice schedule:
@@ -192,7 +192,7 @@ class StudyPlanService:
             Dict with created and skipped counts.
         """
         # Check existing
-        existing = await self.db.scalar(
+        existing = self.db.scalar(
             select(func.count(StudyPlan.id)).where(StudyPlan.user_id == user_id)
         )
         if existing and existing > 0:
@@ -200,10 +200,10 @@ class StudyPlanService:
                 logger.info("Plans already exist for user %d (%d items), skipping", user_id, existing)
                 return {"created": 0, "skipped": existing}
             else:
-                await self.db.execute(
+                self.db.execute(
                     StudyPlan.__table__.delete().where(StudyPlan.user_id == user_id)
                 )
-                await self.db.commit()
+                self.db.commit()
 
         plans_data = self._build_7day_plan(user_id)
         created = 0
@@ -212,7 +212,7 @@ class StudyPlanService:
             self.db.add(plan)
             created += 1
 
-        await self.db.commit()
+        self.db.commit()
         logger.info("Seeded %d plans for user %d", created, user_id)
         return {"created": created, "skipped": 0}
 

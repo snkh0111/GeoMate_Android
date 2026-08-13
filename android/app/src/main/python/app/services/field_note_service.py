@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.models.field_note import FieldNote
 from app.schemas.field_note import FieldNoteCreate, FieldNoteUpdate
@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 class FieldNoteService:
     """CRUD and query operations for geological field notes."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
 
     # ── CRUD ────────────────────────────────────────────────
 
-    async def list_notes(
+    def list_notes(
         self,
         user_id: int | None = None,
         route_id: int | None = None,
@@ -40,21 +40,21 @@ class FieldNoteService:
         if rock_type is not None:
             stmt = stmt.where(FieldNote.rock_type == rock_type)
 
-        result = await self.db.execute(stmt)
+        result = self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_note(self, note_id: int) -> FieldNote | None:
+    def get_note(self, note_id: int) -> FieldNote | None:
         """Get a single field note by ID."""
-        return await self.db.get(FieldNote, note_id)
+        return self.db.get(FieldNote, note_id)
 
-    async def find_by_idempotency_key(self, key: str) -> FieldNote | None:
+    def find_by_idempotency_key(self, key: str) -> FieldNote | None:
         """Find an existing note by idempotency key (offline sync dedup)."""
-        result = await self.db.execute(
+        result = self.db.execute(
             select(FieldNote).where(FieldNote.idempotency_key == key)
         )
         return result.scalar_one_or_none()
 
-    async def create_note(
+    def create_note(
         self, data: FieldNoteCreate, idempotency_key: str | None = None,
     ) -> FieldNote:
         """Create a new geological observation point record."""
@@ -62,35 +62,35 @@ class FieldNoteService:
         if idempotency_key:
             note.idempotency_key = idempotency_key
         self.db.add(note)
-        await self.db.commit()
-        await self.db.refresh(note)
+        self.db.commit()
+        self.db.refresh(note)
         logger.info("Created field note: id=%d point=%s", note.id, note.point_number)
         return note
 
-    async def update_note(self, note_id: int, data: FieldNoteUpdate) -> FieldNote | None:
+    def update_note(self, note_id: int, data: FieldNoteUpdate) -> FieldNote | None:
         """Update a field note. Only provided fields are changed."""
-        note = await self.db.get(FieldNote, note_id)
+        note = self.db.get(FieldNote, note_id)
         if not note:
             return None
         update_data = data.dict(exclude_unset=True)
         for key, value in update_data.items():
             setattr(note, key, value)
-        await self.db.commit()
-        await self.db.refresh(note)
+        self.db.commit()
+        self.db.refresh(note)
         return note
 
-    async def delete_note(self, note_id: int) -> bool:
+    def delete_note(self, note_id: int) -> bool:
         """Delete a field note."""
-        note = await self.db.get(FieldNote, note_id)
+        note = self.db.get(FieldNote, note_id)
         if not note:
             return False
-        await self.db.delete(note)
-        await self.db.commit()
+        self.db.delete(note)
+        self.db.commit()
         return True
 
     # ── Geo queries ─────────────────────────────────────────
 
-    async def list_geojson(
+    def list_geojson(
         self,
         user_id: int | None = None,
         route_id: int | None = None,
@@ -105,7 +105,7 @@ class FieldNoteService:
         if route_id is not None:
             stmt = stmt.where(FieldNote.route_id == route_id)
 
-        result = await self.db.execute(stmt)
+        result = self.db.execute(stmt)
         notes = result.scalars().all()
 
         features = []
@@ -132,7 +132,7 @@ class FieldNoteService:
 
     # ── Seed ────────────────────────────────────────────────
 
-    async def seed_notes(self, user_id: int, force: bool = False) -> dict:
+    def seed_notes(self, user_id: int, force: bool = False) -> dict:
         """Create demo field notes for Route 1 (占甲埠村).
 
         These are realistic examples following the standard
@@ -142,17 +142,17 @@ class FieldNoteService:
             user_id: The user to create notes for.
             force: If True, delete existing notes for this user first.
         """
-        existing = await self.db.scalar(
+        existing = self.db.scalar(
             select(func.count(FieldNote.id)).where(FieldNote.user_id == user_id)
         )
         if existing and existing > 0:
             if not force:
                 return {"created": 0, "skipped": existing}
             else:
-                await self.db.execute(
+                self.db.execute(
                     FieldNote.__table__.delete().where(FieldNote.user_id == user_id)
                 )
-                await self.db.commit()
+                self.db.commit()
 
         now = datetime.utcnow()
 
@@ -237,6 +237,6 @@ class FieldNoteService:
             self.db.add(note)
             created += 1
 
-        await self.db.commit()
+        self.db.commit()
         logger.info("Seeded %d demo field notes for user %d", created, user_id)
         return {"created": created, "skipped": 0}

@@ -5,12 +5,10 @@ fastapi==0.99.1
 uvicorn
 python-multipart
 sqlalchemy
-aiosqlite
 pydantic==1.10.17
 email-validator
 numpy
 python-dotenv
 httpx
-aiofiles
 # 纯 Python PDF 解析（Android 无 PyMuPDF wheel 时的兜底）
 pypdf

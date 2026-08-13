@@ -15,7 +15,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
@@ -35,14 +35,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/knowledge", tags=["Knowledge Base"])
 
 
-def get_knowledge_service(db: AsyncSession = Depends(get_db)) -> KnowledgeService:
+def get_knowledge_service(db: Session = Depends(get_db)) -> KnowledgeService:
     return KnowledgeService(db)
 
 
 # ── Upload ────────────────────────────────────────────────────
 
 @router.post("/upload", response_model=UploadResponse, status_code=201)
-async def upload_pdf(
+def upload_pdf(
     file: UploadFile = File(...),
     title: str | None = None,
     service: KnowledgeService = Depends(get_knowledge_service),
@@ -58,7 +58,7 @@ async def upload_pdf(
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="只支持 PDF 文件")
 
-    content = await file.read()
+    content = file.file.read()
     size_mb = len(content) / (1024 * 1024)
     if size_mb > settings.MAX_UPLOAD_SIZE_MB:
         raise HTTPException(
@@ -76,7 +76,7 @@ async def upload_pdf(
     logger.info("Saved upload: %s (%.1f MB)", safe_filename, size_mb)
 
     try:
-        doc = await service.upload_and_ingest(
+        doc = service.upload_and_ingest(
             file_path=str(file_path),
             filename=file.filename,
             title=title,
@@ -99,7 +99,7 @@ async def upload_pdf(
 # ── Search ────────────────────────────────────────────────────
 
 @router.post("/search", response_model=SearchResponse)
-async def search_knowledge(
+def search_knowledge(
     req: SearchRequest,
     service: KnowledgeService = Depends(get_knowledge_service),
 ):
@@ -111,7 +111,7 @@ async def search_knowledge(
     - "石英的解理特征" → auto-detects mineral=石英, category=矿物
     - "一票否决有哪些？" → auto-detects category=考试重点
     """
-    return await service.search(
+    return service.search(
         query=req.query,
         top_k=req.top_k,
         document_id=req.document_id,
@@ -127,7 +127,7 @@ async def search_knowledge(
 # ── Quick Search (GET, for convenience) ──────────────────────
 
 @router.get("/search", response_model=SearchResponse)
-async def quick_search(
+def quick_search(
     q: str = Query(..., min_length=1, description="搜索查询"),
     top_k: int = Query(default=5, ge=1, le=20),
     category: str | None = Query(default=None),
@@ -138,7 +138,7 @@ async def quick_search(
 
     Example: GET /api/v1/knowledge/search?q=马山路线&location=马山
     """
-    return await service.search(
+    return service.search(
         query=q,
         top_k=top_k,
         category=category,
@@ -150,11 +150,11 @@ async def quick_search(
 # ── Document CRUD ─────────────────────────────────────────────
 
 @router.get("/documents", response_model=DocumentListOut)
-async def list_documents(
+def list_documents(
     service: KnowledgeService = Depends(get_knowledge_service),
 ):
     """List all ingested documents, newest first."""
-    docs = await service.list_documents()
+    docs = service.list_documents()
     return DocumentListOut(
         total=len(docs),
         items=[DocumentOut.from_orm(d) for d in docs],
@@ -162,24 +162,24 @@ async def list_documents(
 
 
 @router.get("/documents/{document_id}", response_model=DocumentOut)
-async def get_document(
+def get_document(
     document_id: int,
     service: KnowledgeService = Depends(get_knowledge_service),
 ):
     """Get a single document's details."""
-    doc = await service.get_document(document_id)
+    doc = service.get_document(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="文档不存在")
     return DocumentOut.from_orm(doc)
 
 
 @router.delete("/documents/{document_id}")
-async def delete_document(
+def delete_document(
     document_id: int,
     service: KnowledgeService = Depends(get_knowledge_service),
 ):
     """Delete a document and all its knowledge chunks."""
-    deleted = await service.delete_document(document_id)
+    deleted = service.delete_document(document_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="文档不存在")
     return {"message": "文档已删除", "document_id": document_id}
@@ -188,11 +188,11 @@ async def delete_document(
 # ── Stats ─────────────────────────────────────────────────────
 
 @router.get("/stats", response_model=KnowledgeStats)
-async def get_stats(
+def get_stats(
     service: KnowledgeService = Depends(get_knowledge_service),
 ):
     """Get knowledge base statistics."""
-    stats = await service.get_stats()
+    stats = service.get_stats()
     return KnowledgeStats(
         document_count=stats["document_count"],
         chunk_count=stats["chunk_count_sqlite"],
@@ -203,7 +203,7 @@ async def get_stats(
 # ── Filters ───────────────────────────────────────────────────
 
 @router.get("/filters", response_model=AvailableFilters)
-async def get_filters(
+def get_filters(
     service: KnowledgeService = Depends(get_knowledge_service),
 ):
     """Get available metadata filter values.

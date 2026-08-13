@@ -10,7 +10,7 @@ import re
 from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.ai.client import chat_json
 from app.ai.prompts.document_analyst import SYSTEM_PROMPT
@@ -28,19 +28,19 @@ MAX_INPUT_CHARS = 40_000
 class IntelligenceService:
     """Analyzes parsed documents and generates routes + study plans."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
 
     # ── AI Analysis ─────────────────────────────────────────
 
-    async def analyze(self, document_id: int, api_key: str | None = None) -> dict:
+    def analyze(self, document_id: int, api_key: str | None = None) -> dict:
         """Run AI analysis on a parsed document.
 
         Args:
             document_id: Document to analyze.
             api_key: Optional per-call Anthropic API key. Falls back to .env.
         """
-        doc = await self._get_document(document_id)
+        doc = self._get_document(document_id)
         if not doc.parsed_content:
             raise ValueError("请先解析文档（POST /documents/{id}/parse）")
 
@@ -73,7 +73,7 @@ class IntelligenceService:
                     "analyzed_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
                 },
             }
-            await self.db.commit()
+            self.db.commit()
             logger.info(
                 "Rule analysis complete: %d routes, %d points, %d tasks",
                 len(analysis.routes), len(analysis.knowledge_points), len(analysis.study_tasks),
@@ -88,10 +88,10 @@ class IntelligenceService:
         logger.info("Analyzing doc %d: %d sections, %d chars", doc.id, len(parsed.sections), len(user_message))
 
         doc.status = "analyzing"
-        await self.db.commit()
+        self.db.commit()
 
         try:
-            raw_json = await chat_json(
+            raw_json = chat_json(
                 system_prompt=SYSTEM_PROMPT, user_message=user_message, api_key=api_key,
             )
         except Exception as e:
@@ -114,7 +114,7 @@ class IntelligenceService:
                     "analyzed_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
                 },
             }
-            await self.db.commit()
+            self.db.commit()
             logger.info(
                 "Rule fallback analysis complete: %d routes, %d points, %d tasks",
                 len(analysis.routes), len(analysis.knowledge_points), len(analysis.study_tasks),
@@ -140,7 +140,7 @@ class IntelligenceService:
                 "analyzed_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             },
         }
-        await self.db.commit()
+        self.db.commit()
 
         logger.info("Analysis complete: %d routes, %d points, %d tasks",
                     len(analysis.routes), len(analysis.knowledge_points), len(analysis.study_tasks))
@@ -149,7 +149,7 @@ class IntelligenceService:
 
     # ── Auto-generate Routes ────────────────────────────────
 
-    async def generate_routes(self, document_id: int) -> dict:
+    def generate_routes(self, document_id: int) -> dict:
         """Generate FieldRoute records from AI analysis results.
 
         Reads the stored AI analysis, validates against existing routes
@@ -158,14 +158,14 @@ class IntelligenceService:
         Returns:
             {created: int, skipped: int, routes: [{id, name}]}
         """
-        doc = await self._get_document(document_id)
+        doc = self._get_document(document_id)
         analysis = self._get_analysis(doc)
 
         if not analysis.routes:
             return {"created": 0, "skipped": 0, "routes": [], "message": "AI 未识别出路线信息"}
 
         # Get existing route names for dedup
-        existing_names = await self._get_existing_route_names()
+        existing_names = self._get_existing_route_names()
 
         created, skipped = 0, 0
         result_routes = []
@@ -192,12 +192,12 @@ class IntelligenceService:
                 order_index=ai_route.order_index,
             )
             self.db.add(route)
-            await self.db.flush()
+            self.db.flush()
             result_routes.append({"id": route.id, "name": route.name})
             existing_names.add(ai_route.name)
             created += 1
 
-        await self.db.commit()
+        self.db.commit()
 
         logger.info("Generated %d routes (skipped %d duplicates) from doc %d",
                     created, skipped, document_id)
@@ -211,7 +211,7 @@ class IntelligenceService:
 
     # ── Auto-generate Study Plans ───────────────────────────
 
-    async def generate_study_plans(
+    def generate_study_plans(
         self, document_id: int, user_id: int, start_date: date | None = None
     ) -> dict:
         """Generate StudyPlan records from AI analysis results.
@@ -227,7 +227,7 @@ class IntelligenceService:
         Returns:
             {created: int, plans: [{id, task_name, date}]}
         """
-        doc = await self._get_document(document_id)
+        doc = self._get_document(document_id)
         analysis = self._get_analysis(doc)
 
         if not analysis.study_tasks:
@@ -237,7 +237,7 @@ class IntelligenceService:
             start_date = date.today()
 
         # Get route name → ID mapping for linking
-        route_map = await self._get_route_name_map()
+        route_map = self._get_route_name_map()
 
         created = 0
         result_plans = []
@@ -262,7 +262,7 @@ class IntelligenceService:
                 order_index=created,
             )
             self.db.add(plan)
-            await self.db.flush()
+            self.db.flush()
             result_plans.append({
                 "id": plan.id,
                 "task_name": plan.task_name,
@@ -270,7 +270,7 @@ class IntelligenceService:
             })
             created += 1
 
-        await self.db.commit()
+        self.db.commit()
 
         logger.info("Generated %d study plans for user %d from doc %d",
                     created, user_id, document_id)
@@ -283,8 +283,8 @@ class IntelligenceService:
 
     # ── Helpers ─────────────────────────────────────────────
 
-    async def _get_document(self, document_id: int) -> AnalysisDocument:
-        doc = await self.db.get(AnalysisDocument, document_id)
+    def _get_document(self, document_id: int) -> AnalysisDocument:
+        doc = self.db.get(AnalysisDocument, document_id)
         if not doc:
             raise ValueError(f"Document not found: id={document_id}")
         return doc
@@ -308,14 +308,14 @@ class IntelligenceService:
         raw_json = analysis_data.get("raw_json", "{}")
         return self._parse_and_validate(raw_json)
 
-    async def _get_existing_route_names(self) -> set[str]:
+    def _get_existing_route_names(self) -> set[str]:
         """Get all existing route names for duplicate detection."""
-        result = await self.db.execute(select(FieldRoute.name))
+        result = self.db.execute(select(FieldRoute.name))
         return {row[0] for row in result}
 
-    async def _get_route_name_map(self) -> dict[str, int]:
+    def _get_route_name_map(self) -> dict[str, int]:
         """Get mapping of route name → route id."""
-        result = await self.db.execute(select(FieldRoute.id, FieldRoute.name))
+        result = self.db.execute(select(FieldRoute.id, FieldRoute.name))
         return {row[1]: row[0] for row in result}
 
     @staticmethod

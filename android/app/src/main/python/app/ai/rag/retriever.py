@@ -124,7 +124,7 @@ class Retriever:
 
     # ── Ingestion ──────────────────────────────────────────────
 
-    async def ingest_document(
+    def ingest_document(
         self,
         pages: list[tuple[int, str]],
         document_id: int,
@@ -187,7 +187,7 @@ class Retriever:
 
     # ── Search ─────────────────────────────────────────────────
 
-    async def search(
+    def search(
         self,
         query: str,
         top_k: int = 5,
@@ -284,7 +284,7 @@ class Retriever:
 
     # ── Management ─────────────────────────────────────────────
 
-    async def delete_document(self, document_id: int) -> int:
+    def delete_document(self, document_id: int) -> int:
         return delete_document_chunks(document_id)
 
     def stats(self) -> dict:

@@ -1,42 +1,28 @@
 # ── GeoMate Android Backend Dependencies ──
-# For use with Chaquopy (Android Python SDK)
-# pip install -r requirements_android.txt
+# 与 android_app/app/src/main/python/requirements.txt 保持一致。
+# Chaquopy 只能安装 wheel（不能安装 sdist）：
+#   - pydantic 2.x 的 Rust 核心 pydantic-core 无 Android wheel → 降级 pydantic 1.10 + fastapi 0.99
+#   - SQLAlchemy 使用同步 API（不依赖 greenlet，greenlet 无 Android wheel）
+#   - 不引入 torch / sentence-transformers / chromadb / pymupdf（原生依赖 Android 不兼容）
 
-# FastAPI (same as original)
-fastapi>=0.115
-uvicorn[standard]>=0.34
-python-multipart>=0.0.19
+fastapi==0.99.1
+uvicorn
+python-multipart
+sqlalchemy
+pydantic==1.10.17
+email-validator
 
-# Database (same as original)
-sqlalchemy>=2.0
-aiosqlite>=0.20
+# 向量检索：纯 Python（SQLite + numpy 余弦），替代 ChromaDB
+numpy
 
-# Auth (same as original)
-python-jose[cryptography]>=3.3
-passlib[bcrypt]>=1.7
-pydantic[email]>=2.10
+# Embeddings：Android 使用纯 numpy 的 light 后端（字符 bigram 特征哈希）
 
-# Vector Search — REPLACED: ChromaDB → numpy (pure Python, no native deps)
-# chromadb removed (native deps incompatible with Android/Chaquopy)
-# LightVectorStore uses SQLite + numpy cosine similarity instead
-numpy>=1.24,<2.0
+# PDF：纯 Python 解析（Android 无 PyMuPDF wheel 时的兜底）
+pypdf
 
-# Embeddings — Android 使用纯 numpy 的 light 后端（字符 bigram 特征哈希），
-# 无需 torch / sentence-transformers / 模型下载。
-# 如需桌面端高质量语义模型，可自行安装：pip install sentence-transformers
+# Utils
+python-dotenv
+httpx
 
-# PDF (same as original)
-pymupdf>=1.25
-# Pure-Python fallback for Android (no PyMuPDF wheel)
-pypdf>=4.0
-
-# Image (same as original)
-Pillow>=10.0
-
-# Utils (same as original)
-python-dotenv>=1.0
-httpx>=0.28
-aiofiles>=24.0
-
-# AI LLM (Anthropic Claude — needed for AI tutor / document analysis)
-anthropic>=0.40
+# AI LLM（Anthropic Claude，可选；无 key 时走离线规则引擎）
+anthropic

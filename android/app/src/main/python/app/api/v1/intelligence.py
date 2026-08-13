@@ -11,7 +11,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.intelligence_service import IntelligenceService
@@ -38,18 +38,18 @@ class ChatResponse(BaseModel):
 router = APIRouter(prefix="/intelligence", tags=["Intelligence"])
 
 
-def get_intelligence_service(db: AsyncSession = Depends(get_db)) -> IntelligenceService:
+def get_intelligence_service(db: Session = Depends(get_db)) -> IntelligenceService:
     return IntelligenceService(db)
 
 
-def get_tutor_service(db: AsyncSession = Depends(get_db)) -> TutorService:
+def get_tutor_service(db: Session = Depends(get_db)) -> TutorService:
     return TutorService(db)
 
 
 # ── Analyze ──────────────────────────────────────────────────
 
 @router.post("/analyze/{document_id}")
-async def analyze_document(
+def analyze_document(
     document_id: int,
     api_key: str | None = Query(default=None, description="Anthropic API Key（可选，留空则使用 .env 配置）"),
     service: IntelligenceService = Depends(get_intelligence_service),
@@ -68,7 +68,7 @@ async def analyze_document(
     Results are saved and retrievable via GET /intelligence/result/{document_id}.
     """
     try:
-        result = await service.analyze(document_id, api_key=api_key)
+        result = service.analyze(document_id, api_key=api_key)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -92,7 +92,7 @@ async def analyze_document(
 # ── Get result ───────────────────────────────────────────────
 
 @router.get("/result/{document_id}")
-async def get_analysis_result(
+def get_analysis_result(
     document_id: int,
     service: IntelligenceService = Depends(get_intelligence_service),
 ):
@@ -104,7 +104,7 @@ async def get_analysis_result(
     from app.models.document import AnalysisDocument
 
     db = service.db
-    doc = await db.get(AnalysisDocument, document_id)
+    doc = db.get(AnalysisDocument, document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="文档不存在")
     if not doc.parsed_content:
@@ -138,7 +138,7 @@ async def get_analysis_result(
 # ── AI Tutor Chat (SSE streaming) ───────────────────────────
 
 @router.post("/chat")
-async def tutor_chat(
+def tutor_chat(
     req: ChatRequest,
     service: TutorService = Depends(get_tutor_service),
 ):

@@ -1,17 +1,23 @@
-"""SQLAlchemy async engine and session factory."""
+"""SQLAlchemy engine and session factory (synchronous).
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
+Uses the synchronous SQLAlchemy API so it does not depend on the
+``greenlet`` C extension, which has no Android wheel (Chaquopy can
+only install wheels). FastAPI runs synchronous endpoints in a thread
+pool, so blocking SQLite access is fine for a single-user local app.
+"""
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import settings
 
-engine = create_async_engine(
+engine = create_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    connect_args={"check_same_thread": False},  # SQLite needs this for async
+    connect_args={"check_same_thread": False},  # SQLite across threads
 )
 
-async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):
@@ -19,24 +25,23 @@ class Base(DeclarativeBase):
     pass
 
 
-async def get_db() -> AsyncSession:
-    """FastAPI dependency: yields an async database session."""
-    async with async_session() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+def get_db():
+    """FastAPI dependency: yields a synchronous database session."""
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
 
 
-async def init_db():
+def init_db():
     """Create all tables and run dev migrations. Called at application startup."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        # Dev migrations: add columns that may be missing from older DBs
-        await _run_dev_migrations(conn)
+    Base.metadata.create_all(engine)
+    with engine.begin() as conn:
+        _run_dev_migrations(conn)
 
 
-async def _run_dev_migrations(conn):
+def _run_dev_migrations(conn):
     """Apply lightweight dev migrations for SQLite.
 
     For production, use Alembic. These are for development convenience.
@@ -51,6 +56,6 @@ async def _run_dev_migrations(conn):
 
     for sql in migrations:
         try:
-            await conn.execute(text(sql))
+            conn.execute(text(sql))
         except Exception:
             pass  # Column already exists — skip

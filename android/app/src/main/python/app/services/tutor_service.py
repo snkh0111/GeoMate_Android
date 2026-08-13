@@ -6,9 +6,9 @@ Falls back to knowledge search results when no Anthropic API key is configured.
 
 import json
 import logging
-from typing import AsyncGenerator
+from typing import Generator
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.ai.client import chat_json_stream
 from app.ai.prompts.tutor import TUTOR_SYSTEM_PROMPT, TUTOR_WITH_CONTEXT_PROMPT
@@ -24,7 +24,7 @@ DEFAULT_MODEL = "claude-sonnet-5-20251001"
 class TutorService:
     """Handles AI tutor conversations with RAG augmentation."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
         self.knowledge = KnowledgeService(db)
 
@@ -39,10 +39,10 @@ class TutorService:
 
     # ── Search context ───────────────────────────────────────
 
-    async def _search_context(self, query: str) -> str:
+    def _search_context(self, query: str) -> str:
         """Search knowledge base and format results as context string."""
         try:
-            response = await self.knowledge.search(
+            response = self.knowledge.search(
                 query=query, top_k=3, auto_filter=True,
             )
             results = response.results
@@ -99,13 +99,13 @@ class TutorService:
 
     # ── Streaming chat ───────────────────────────────────────
 
-    async def chat_stream(
+    def chat_stream(
         self,
         message: str,
         history: list[dict] | None = None,
         api_key: str | None = None,
         model: str = DEFAULT_MODEL,
-    ) -> AsyncGenerator[str, None]:
+    ) -> Generator[str, None, None]:
         """Stream an AI tutor response with RAG context.
 
         Yields SSE-formatted strings: "data: {json}\n\n"
@@ -115,12 +115,12 @@ class TutorService:
 
         if key is None:
             # No API key → fall back to knowledge search formatted as teaching
-            async for chunk in self._fallback_response(message):
+            for chunk in self._fallback_response(message):
                 yield chunk
             return
 
         # Search knowledge base for context
-        context = await self._search_context(message)
+        context = self._search_context(message)
 
         # Build system prompt
         if context:
@@ -140,7 +140,7 @@ class TutorService:
         )
 
         try:
-            async for text_chunk in chat_json_stream(
+            for text_chunk in chat_json_stream(
                 system_prompt=system_prompt,
                 user_message=user_content,
                 model=model,
@@ -157,9 +157,9 @@ class TutorService:
 
     # ── Fallback: knowledge-based response (no API key) ──────
 
-    async def _fallback_response(self, message: str) -> AsyncGenerator[str, None]:
+    def _fallback_response(self, message: str) -> Generator[str, None, None]:
         """Generate a teaching-style response from knowledge base only."""
-        context = await self._search_context(message)
+        context = self._search_context(message)
 
         yield f"data: {json.dumps({'type': 'meta', 'mode': 'knowledge'})}\n\n"
 

@@ -12,7 +12,7 @@ Endpoints:
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.route import (
@@ -28,21 +28,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/routes", tags=["Routes"])
 
 
-def get_route_service(db: AsyncSession = Depends(get_db)) -> RouteService:
+def get_route_service(db: Session = Depends(get_db)) -> RouteService:
     return RouteService(db)
 
 
 # ── List ─────────────────────────────────────────────────────
 
 @router.get("", response_model=RouteListOut)
-async def list_routes(
+def list_routes(
     service: RouteService = Depends(get_route_service),
 ):
     """List all routes, ordered by route number (order_index).
 
     Returns all 7 Weihai field practice routes.
     """
-    routes = await service.list_routes()
+    routes = service.list_routes()
     return RouteListOut(
         total=len(routes),
         items=[RouteOut.from_orm(r) for r in routes],
@@ -52,7 +52,7 @@ async def list_routes(
 # ── Detail ───────────────────────────────────────────────────
 
 @router.get("/{route_id}", response_model=RouteOut)
-async def get_route(
+def get_route(
     route_id: int,
     service: RouteService = Depends(get_route_service),
 ):
@@ -61,7 +61,7 @@ async def get_route(
     Returns learning objectives, key observation points,
     precautions, required tools, and geological background.
     """
-    route = await service.get_route(route_id)
+    route = service.get_route(route_id)
     if not route:
         raise HTTPException(status_code=404, detail="路线不存在")
     return RouteOut.from_orm(route)
@@ -70,7 +70,7 @@ async def get_route(
 # ── Create ───────────────────────────────────────────────────
 
 @router.post("", response_model=RouteOut, status_code=201)
-async def create_route(
+def create_route(
     data: RouteCreate,
     service: RouteService = Depends(get_route_service),
 ):
@@ -80,7 +80,7 @@ async def create_route(
     should be provided as JSON arrays of strings.
     """
     try:
-        route = await service.create_route(data)
+        route = service.create_route(data)
         return RouteOut.from_orm(route)
     except Exception as e:
         logger.exception("Failed to create route")
@@ -90,13 +90,13 @@ async def create_route(
 # ── Update ───────────────────────────────────────────────────
 
 @router.put("/{route_id}", response_model=RouteOut)
-async def update_route(
+def update_route(
     route_id: int,
     data: RouteUpdate,
     service: RouteService = Depends(get_route_service),
 ):
     """Update a route. Only provided fields will be changed. (Admin endpoint)"""
-    route = await service.update_route(route_id, data)
+    route = service.update_route(route_id, data)
     if not route:
         raise HTTPException(status_code=404, detail="路线不存在")
     return RouteOut.from_orm(route)
@@ -105,12 +105,12 @@ async def update_route(
 # ── Delete ───────────────────────────────────────────────────
 
 @router.delete("/{route_id}")
-async def delete_route(
+def delete_route(
     route_id: int,
     service: RouteService = Depends(get_route_service),
 ):
     """Delete a route. (Admin endpoint)"""
-    deleted = await service.delete_route(route_id)
+    deleted = service.delete_route(route_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="路线不存在")
     return {"message": "路线已删除", "route_id": route_id}
@@ -119,7 +119,7 @@ async def delete_route(
 # ── Seed ─────────────────────────────────────────────────────
 
 @router.post("/seed")
-async def seed_routes(
+def seed_routes(
     force: bool = Query(default=False, description="是否强制重新导入（会删除已有数据）"),
     service: RouteService = Depends(get_route_service),
 ):
@@ -131,7 +131,7 @@ async def seed_routes(
     Each route includes geological background, learning objectives,
     key observation points, precautions, and required tools.
     """
-    result = await service.seed_routes(force=force)
+    result = service.seed_routes(force=force)
     if result["created"] > 0:
         return {
             "message": f"成功导入 {result['created']} 条路线",

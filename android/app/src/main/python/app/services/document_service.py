@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.document import AnalysisDocument
@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 class DocumentService:
     """Handles document upload and listing for the Intelligence Agent."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
 
-    async def upload(
+    def upload(
         self, user_id: int, filename: str, content: bytes
     ) -> AnalysisDocument:
         """Save an uploaded PDF and create a database record.
@@ -53,8 +53,8 @@ class DocumentService:
             status="uploaded",
         )
         self.db.add(doc)
-        await self.db.commit()
-        await self.db.refresh(doc)
+        self.db.commit()
+        self.db.refresh(doc)
 
         logger.info(
             "Document uploaded: id=%d user=%d file=%s size=%d",
@@ -62,7 +62,7 @@ class DocumentService:
         )
         return doc
 
-    async def list_documents(self, user_id: int | None = None) -> list[AnalysisDocument]:
+    def list_documents(self, user_id: int | None = None) -> list[AnalysisDocument]:
         """List uploaded documents, newest first.
 
         Args:
@@ -71,16 +71,16 @@ class DocumentService:
         stmt = select(AnalysisDocument).order_by(AnalysisDocument.created_at.desc())
         if user_id is not None:
             stmt = stmt.where(AnalysisDocument.user_id == user_id)
-        result = await self.db.execute(stmt)
+        result = self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_document(self, document_id: int) -> AnalysisDocument | None:
+    def get_document(self, document_id: int) -> AnalysisDocument | None:
         """Get a single document by ID."""
-        return await self.db.get(AnalysisDocument, document_id)
+        return self.db.get(AnalysisDocument, document_id)
 
-    async def delete_document(self, document_id: int) -> bool:
+    def delete_document(self, document_id: int) -> bool:
         """Delete a document record and its file from disk."""
-        doc = await self.db.get(AnalysisDocument, document_id)
+        doc = self.db.get(AnalysisDocument, document_id)
         if not doc:
             return False
 
@@ -91,7 +91,7 @@ class DocumentService:
         except OSError as e:
             logger.warning("Failed to delete file %s: %s", doc.file_path, e)
 
-        await self.db.delete(doc)
-        await self.db.commit()
+        self.db.delete(doc)
+        self.db.commit()
         logger.info("Document deleted: id=%d", document_id)
         return True

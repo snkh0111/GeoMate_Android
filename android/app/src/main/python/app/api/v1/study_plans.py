@@ -15,7 +15,7 @@ import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.study_plan import (
@@ -33,14 +33,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/plans", tags=["Study Plans"])
 
 
-def get_plan_service(db: AsyncSession = Depends(get_db)) -> StudyPlanService:
+def get_plan_service(db: Session = Depends(get_db)) -> StudyPlanService:
     return StudyPlanService(db)
 
 
 # ── List ─────────────────────────────────────────────────────
 
 @router.get("", response_model=PlanListOut)
-async def list_plans(
+def list_plans(
     user_id: int = Query(..., gt=0, description="用户ID"),
     plan_date: date | None = Query(default=None, description="筛选日期"),
     status: str | None = Query(default=None, regex="^(pending|completed)$"),
@@ -54,7 +54,7 @@ async def list_plans(
     - GET /plans?user_id=1&date=2026-07-01 — plans for a specific day
     - GET /plans?user_id=1&status=pending — only incomplete tasks
     """
-    plans = await service.list_plans(
+    plans = service.list_plans(
         user_id=user_id, plan_date=plan_date,
         status=status, category=category,
     )
@@ -67,7 +67,7 @@ async def list_plans(
 # ── Daily grouped view ───────────────────────────────────────
 
 @router.get("/daily", response_model=list[DailyPlanOut])
-async def get_daily_plans(
+def get_daily_plans(
     user_id: int = Query(..., gt=0),
     plan_date: date | None = Query(default=None),
     service: StudyPlanService = Depends(get_plan_service),
@@ -89,7 +89,7 @@ async def get_daily_plans(
       ...
     ]
     """
-    daily = await service.get_daily_plans(user_id=user_id, plan_date=plan_date)
+    daily = service.get_daily_plans(user_id=user_id, plan_date=plan_date)
     return [
         DailyPlanOut(
             date=d["date"],
@@ -105,7 +105,7 @@ async def get_daily_plans(
 # ── Stats ────────────────────────────────────────────────────
 
 @router.get("/stats", response_model=PlanStatsOut)
-async def get_stats(
+def get_stats(
     user_id: int = Query(..., gt=0),
     service: StudyPlanService = Depends(get_plan_service),
 ):
@@ -114,26 +114,26 @@ async def get_stats(
     Includes overall completion rate, breakdown by category,
     and breakdown by priority level.
     """
-    stats = await service.get_stats(user_id=user_id)
+    stats = service.get_stats(user_id=user_id)
     return PlanStatsOut(**stats)
 
 
 # ── Create ───────────────────────────────────────────────────
 
 @router.post("", response_model=PlanOut, status_code=201)
-async def create_plan(
+def create_plan(
     data: PlanCreate,
     service: StudyPlanService = Depends(get_plan_service),
 ):
     """Create a new study plan item."""
-    plan = await service.create_plan(data)
+    plan = service.create_plan(data)
     return PlanOut.from_orm(plan)
 
 
 # ── Toggle status (快捷完成/取消完成) ───────────────────────
 
 @router.patch("/{plan_id}/toggle", response_model=PlanOut)
-async def toggle_plan_status(
+def toggle_plan_status(
     plan_id: int,
     service: StudyPlanService = Depends(get_plan_service),
 ):
@@ -142,7 +142,7 @@ async def toggle_plan_status(
     Convenience endpoint for the checkbox UI —
     one click to mark done, another to undo.
     """
-    plan = await service.toggle_status(plan_id)
+    plan = service.toggle_status(plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="计划项不存在")
     return PlanOut.from_orm(plan)
@@ -151,13 +151,13 @@ async def toggle_plan_status(
 # ── Update ───────────────────────────────────────────────────
 
 @router.put("/{plan_id}", response_model=PlanOut)
-async def update_plan(
+def update_plan(
     plan_id: int,
     data: PlanUpdate,
     service: StudyPlanService = Depends(get_plan_service),
 ):
     """Update a plan item. Only provided fields are changed."""
-    plan = await service.update_plan(plan_id, data)
+    plan = service.update_plan(plan_id, data)
     if not plan:
         raise HTTPException(status_code=404, detail="计划项不存在")
     return PlanOut.from_orm(plan)
@@ -166,12 +166,12 @@ async def update_plan(
 # ── Delete ───────────────────────────────────────────────────
 
 @router.delete("/{plan_id}")
-async def delete_plan(
+def delete_plan(
     plan_id: int,
     service: StudyPlanService = Depends(get_plan_service),
 ):
     """Delete a plan item."""
-    deleted = await service.delete_plan(plan_id)
+    deleted = service.delete_plan(plan_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="计划项不存在")
     return {"message": "计划项已删除", "plan_id": plan_id}
@@ -180,7 +180,7 @@ async def delete_plan(
 # ── Seed ─────────────────────────────────────────────────────
 
 @router.post("/seed")
-async def seed_plans(
+def seed_plans(
     user_id: int = Query(..., gt=0, description="为用户生成7天学习计划"),
     force: bool = Query(default=False, description="是否强制重新生成"),
     service: StudyPlanService = Depends(get_plan_service),
@@ -199,7 +199,7 @@ async def seed_plans(
     Each day includes route prep, field tasks, mineral/rock review,
     and exam key points. Total: ~32 tasks across 7 days.
     """
-    result = await service.seed_plans(user_id=user_id, force=force)
+    result = service.seed_plans(user_id=user_id, force=force)
     if result["created"] > 0:
         return {
             "message": f"成功生成 {result['created']} 项学习任务（7天计划）",

@@ -30,7 +30,7 @@ import app.ai.rag.store  # noqa: F401  # ensures LightVectorStore is importable
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     # Startup: create tables
-    await init_db()
+    init_db()
     yield
     # Shutdown: nothing to clean up
 
@@ -54,7 +54,7 @@ app.add_middleware(
 
 
 @app.get("/health")
-async def health_check():
+def health_check():
     return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
 
 
