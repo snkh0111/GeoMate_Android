@@ -57,11 +57,21 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** 获取 Chaquopy Python 实例；未初始化时显式用 AndroidPlatform 初始化（兜底）。 */
+    private com.chaquo.python.Python ensurePython() {
+        try {
+            return com.chaquo.python.Python.getInstance();
+        } catch (RuntimeException e) {
+            com.chaquo.python.Python.start(new com.chaquo.python.AndroidPlatform(this));
+            return com.chaquo.python.Python.getInstance();
+        }
+    }
+
     /** 在后台线程启动内嵌 Python 后端服务（非阻塞）。 */
     private void startBackendServer() {
         new Thread(() -> {
             try {
-                com.chaquo.python.Python py = com.chaquo.python.Python.getInstance();
+                com.chaquo.python.Python py = ensurePython();
                 py.getModule("android_bridge").callAttr("start_server_async");
                 Log.i(TAG, "内嵌后端已在后台启动");
             } catch (Exception e) {
