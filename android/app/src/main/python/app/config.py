@@ -22,9 +22,9 @@ def _get_base_dir() -> Path:
     # before android_bridge._setup_android_env() runs.
     if hasattr(sys, "getandroidapilevel"):
         try:
-            from java import jclass
+            from com.chaquo.python import Python
 
-            context = jclass("com.chaquo.python.Python").getApplicationContext()
+            context = Python.getPlatform().getApplication()
             return Path(context.getFilesDir().getAbsolutePath())
         except Exception:
             pass

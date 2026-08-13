@@ -34,10 +34,10 @@ def _setup_android_env():
     if not IS_ANDROID:
         return
 
-    from java import jclass  # type: ignore
+    from com.chaquo.python import Python  # type: ignore
 
     try:
-        context = jclass("com.chaquo.python.Python").getApplicationContext()
+        context = Python.getPlatform().getApplication()
         app_data = context.getFilesDir().getAbsolutePath()
         os.environ["ANDROID_APP_DATA_DIR"] = app_data
         logger.info("Android app data dir: %s", app_data)
