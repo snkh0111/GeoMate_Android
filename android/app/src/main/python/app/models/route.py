@@ -20,6 +20,9 @@ class FieldRoute(Base):
 
     # ── Primary fields ──────────────────────────────────────
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source_document_id: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="来源文档ID（由上传PDF自动生成）"
+    )
     name: Mapped[str] = mapped_column(String(200), nullable=False, comment="路线名称")
     location: Mapped[str] = mapped_column(String(200), nullable=False, comment="地理位置")
     geological_type: Mapped[str] = mapped_column(

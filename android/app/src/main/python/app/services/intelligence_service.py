@@ -179,6 +179,7 @@ class IntelligenceService:
 
             # Create FieldRoute
             route = FieldRoute(
+                source_document_id=document_id,
                 name=ai_route.name,
                 location=ai_route.location,
                 geological_type=ai_route.geological_type,
@@ -198,6 +199,10 @@ class IntelligenceService:
             created += 1
 
         self.db.commit()
+
+        if result_routes:
+            self._record_generated(doc, route_ids=[r["id"] for r in result_routes])
+            self.db.commit()
 
         logger.info("Generated %d routes (skipped %d duplicates) from doc %d",
                     created, skipped, document_id)
@@ -253,6 +258,7 @@ class IntelligenceService:
             plan = StudyPlan(
                 user_id=user_id,
                 route_id=route_id,
+                source_document_id=document_id,
                 plan_date=plan_date,
                 task_name=task.task_name,
                 content=task.content,
@@ -271,6 +277,10 @@ class IntelligenceService:
             created += 1
 
         self.db.commit()
+
+        if result_plans:
+            self._record_generated(doc, plan_ids=[p["id"] for p in result_plans])
+            self.db.commit()
 
         logger.info("Generated %d study plans for user %d from doc %d",
                     created, user_id, document_id)
@@ -307,6 +317,33 @@ class IntelligenceService:
 
         raw_json = analysis_data.get("raw_json", "{}")
         return self._parse_and_validate(raw_json)
+
+    def _record_generated(
+        self,
+        doc: AnalysisDocument,
+        route_ids: list[int] | None = None,
+        plan_ids: list[int] | None = None,
+        knowledge_ids: list[int] | None = None,
+    ) -> None:
+        """Persist IDs of records generated from this document for cascade deletion.
+
+        The source document has no foreign-key back-reference to the routes/plans
+        it produced, so we store the generated IDs inside ``parsed_content``.
+        """
+        content = dict(doc.parsed_content) if doc.parsed_content else {}
+        generated = dict(content.get("generated")) if isinstance(content.get("generated"), dict) else {}
+
+        if route_ids:
+            generated["route_ids"] = sorted(set(generated.get("route_ids") or []) | set(route_ids))
+        if plan_ids:
+            generated["plan_ids"] = sorted(set(generated.get("plan_ids") or []) | set(plan_ids))
+        if knowledge_ids:
+            generated["knowledge_document_ids"] = sorted(
+                set(generated.get("knowledge_document_ids") or []) | set(knowledge_ids)
+            )
+
+        content["generated"] = generated
+        doc.parsed_content = content
 
     def _get_existing_route_names(self) -> set[str]:
         """Get all existing route names for duplicate detection."""

@@ -28,6 +28,9 @@ class StudyPlan(Base):
         Integer, ForeignKey("field_routes.id", ondelete="SET NULL"), nullable=True,
         comment="关联路线（可为空，表示通用学习任务）"
     )
+    source_document_id: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="来源文档ID（由上传PDF自动生成）"
+    )
 
     # ── Core fields ─────────────────────────────────────────
     plan_date: Mapped[date] = mapped_column(

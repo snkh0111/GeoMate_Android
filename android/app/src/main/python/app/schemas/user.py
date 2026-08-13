@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 class UserCreate(BaseModel):
     """Register a new user."""
-    username: str = Field(..., min_length=2, max_length=100)
+    username: str = Field(..., min_length=1, max_length=100)
     password: str = Field(..., min_length=4, max_length=100)
     email: str | None = None
     display_name: str | None = None

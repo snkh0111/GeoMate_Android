@@ -52,6 +52,10 @@ def _run_dev_migrations(conn):
         # Document parser fields (added after initial documents table)
         "ALTER TABLE documents ADD COLUMN parsed_content JSON",
         "ALTER TABLE documents ADD COLUMN parsed_at DATETIME",
+        # Source-document tracking for cascade deletion of generated routes/plans
+        "ALTER TABLE field_routes ADD COLUMN source_document_id INTEGER",
+        "ALTER TABLE study_plans ADD COLUMN source_document_id INTEGER",
+        "ALTER TABLE knowledge_documents ADD COLUMN source_document_id INTEGER",
     ]
 
     for sql in migrations:

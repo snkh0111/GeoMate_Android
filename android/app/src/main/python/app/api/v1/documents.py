@@ -302,7 +302,10 @@ def auto_generate(
             ksvc = KnowledgeService(db)
             kdoc = ksvc.upload_and_ingest(doc.file_path, doc.filename)
             knowledge_id = kdoc.id
+            kdoc.source_document_id = document_id
             knowledge_message = f"知识库已收录 {kdoc.chunk_count or 0} 个片段"
+            svc._record_generated(doc, knowledge_ids=[knowledge_id])
+            db.commit()
     except Exception as e:
         logger.warning("Knowledge ingest failed for doc %d: %s", document_id, e)
         knowledge_message = f"知识库收录失败: {str(e)[:120]}"

@@ -1,8 +1,12 @@
 package com.geomate.app;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -19,6 +23,10 @@ public class MainActivity extends Activity {
 
     private static final String TAG = "GeoMate";
     private WebView webView;
+
+    /** H5 <input type="file"> 的文件选择回调（onShowFileChooser 使用）。 */
+    private ValueCallback<Uri[]> filePathCallback;
+    private static final int FILE_CHOOSER_REQUEST_CODE = 100;
 
     /** 最近一次后端启动异常（Java 侧），供页面展示定位。 */
     private static volatile String lastBackendError = "";
@@ -39,7 +47,34 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
 
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                injectChatBarFix(view);
+            }
+        });
+        // H5 <input type="file"> 上传依赖 onShowFileChooser；未实现时点击上传按钮无反应
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
+                                             FileChooserParams fileChooserParams) {
+                if (MainActivity.this.filePathCallback != null) {
+                    MainActivity.this.filePathCallback.onReceiveValue(null);
+                }
+                MainActivity.this.filePathCallback = filePathCallback;
+                Intent intent = fileChooserParams.createIntent();
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                try {
+                    startActivityForResult(Intent.createChooser(intent, "选择 PDF 文件"),
+                            FILE_CHOOSER_REQUEST_CODE);
+                } catch (Exception e) {
+                    MainActivity.this.filePathCallback = null;
+                    return false;
+                }
+                return true;
+            }
+        });
         // 暴露后端启动错误给 H5 页面（登录页可展示真实错误信息）
         webView.addJavascriptInterface(new JsNativeBridge(), "AndroidNative");
         webView.loadUrl("file:///android_asset/www/pages/login.html");
@@ -83,6 +118,44 @@ public class MainActivity extends Activity {
                 Log.e(TAG, "启动内嵌后端失败", e);
             }
         }, "GeoMate-Backend").start();
+    }
+
+    /** 修复 AI 问答页输入栏：置底 + 键盘弹起时随 WebView 上抬（不改前端源码，仅注入样式）。 */
+    private void injectChatBarFix(WebView view) {
+        String js = "(function(){"
+            + "var inp=document.querySelector('input[placeholder*=\"输入地质问题\"]');"
+            + "if(!inp)return;"
+            + "var bar=inp.closest('.p-3');"
+            + "if(!bar)return;"
+            + "bar.style.position='fixed';"
+            + "bar.style.left='0';"
+            + "bar.style.right='0';"
+            + "bar.style.zIndex='60';"
+            + "bar.style.background='var(--gm-card,#fff)';"
+            + "bar.style.boxShadow='0 -1px 0 rgba(0,0,0,.06)';"
+            + "var flow=document.querySelector('.chat-flow');"
+            + "if(flow)flow.style.paddingBottom='96px';"
+            + "function lift(){var vv=window.visualViewport;var d=0;"
+            + "if(vv){d=document.documentElement.clientHeight-vv.offsetTop-vv.height;}"
+            + "bar.style.bottom=(d>0?d:0)+'px';}"
+            + "lift();"
+            + "if(window.visualViewport){"
+            + "window.visualViewport.addEventListener('resize',lift);"
+            + "window.visualViewport.addEventListener('scroll',lift);}"
+            + "})();";
+        view.evaluateJavascript(js, null);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
+            if (filePathCallback == null) return;
+            Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+            filePathCallback.onReceiveValue(results);
+            filePathCallback = null;
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
     }
 
     @Override

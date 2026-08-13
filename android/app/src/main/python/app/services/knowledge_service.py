@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.ai.rag.retriever import QueryIntent, Retriever
@@ -168,7 +168,78 @@ class KnowledgeService:
         doc = self.db.get(KnowledgeDocument, document_id)
         if not doc:
             return False
+
+        # Resolve the source analysis document (uploaded PDF) that spawned this
+        # knowledge document, so routes/study-plans generated from it are
+        # cascade-deleted together with this document.
+        from app.models.document import AnalysisDocument
+
+        source_doc_id = getattr(doc, "source_document_id", None)
+        source_doc = None
+        if not source_doc_id:
+            row = self.db.execute(
+                select(AnalysisDocument.id).where(
+                    AnalysisDocument.file_path == doc.file_path
+                )
+            ).first()
+            if row:
+                source_doc_id = row[0]
+        if source_doc_id:
+            source_doc = self.db.get(AnalysisDocument, source_doc_id)
+
+        if source_doc:
+            from app.models.route import FieldRoute
+            from app.models.study_plan import StudyPlan
+            from app.services.document_service import DocumentService
+
+            # Collect route/plan IDs from every available source so legacy rows
+            # (created before source_document_id tracking existed) are removed too:
+            #   1. IDs persisted in parsed_content["generated"] during auto-generate
+            #   2. source_document_id back-reference (rows created after tracking)
+            #   3. name-based fallback (rows created before generated tracking)
+            generated = (source_doc.parsed_content or {}).get("generated") or {}
+            plan_ids = {int(i) for i in (generated.get("plan_ids") or [])}
+            route_ids = {int(i) for i in (generated.get("route_ids") or [])}
+
+            plan_ids |= {row[0] for row in self.db.execute(
+                select(StudyPlan.id).where(StudyPlan.source_document_id == source_doc_id)
+            )}
+            route_ids |= {row[0] for row in self.db.execute(
+                select(FieldRoute.id).where(FieldRoute.source_document_id == source_doc_id)
+            )}
+
+            if not route_ids:
+                route_names = DocumentService._analysis_route_names(source_doc)
+                if route_names:
+                    route_ids |= {row[0] for row in self.db.execute(
+                        select(FieldRoute.id).where(FieldRoute.name.in_(route_names))
+                    )}
+            if not plan_ids:
+                task_names = DocumentService._analysis_study_task_names(source_doc)
+                if task_names:
+                    plan_ids |= {row[0] for row in self.db.execute(
+                        select(StudyPlan.id).where(StudyPlan.task_name.in_(task_names))
+                    )}
+
+            # Study plans reference routes, so delete plans first.
+            if plan_ids:
+                self.db.execute(delete(StudyPlan).where(StudyPlan.id.in_(plan_ids)))
+            if route_ids:
+                self.db.execute(delete(FieldRoute).where(FieldRoute.id.in_(route_ids)))
+
+            # Remove the source analysis document too.
+            self.db.delete(source_doc)
+
+        # Delete vector chunks from the vector store.
         self.retriever.delete_document(document_id)
+
+        # Remove the shared PDF file from disk once.
+        try:
+            if os.path.exists(doc.file_path):
+                os.remove(doc.file_path)
+        except OSError as e:
+            logger.warning("Failed to delete file %s: %s", doc.file_path, e)
+
         self.db.delete(doc)
         self.db.commit()
         return True

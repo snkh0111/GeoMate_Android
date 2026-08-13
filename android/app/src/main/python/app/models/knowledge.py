@@ -23,6 +23,9 @@ class KnowledgeDocument(Base):
     )  # processing | ready | error
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     file_size: Mapped[int | None] = mapped_column(Integer)
+    source_document_id: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="来源分析文档ID（由上传PDF自动生成，用于级联删除路线/计划）"
+    )
     error_message: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()

@@ -21,6 +21,7 @@
 | 9 | 前端重设计 + 静态演示页接入后端真实数据 + LLM 失败自动降级 | 完成 |
 | 10 | 前端编辑功能完善：学习计划行内编辑 + 野外记录编辑浮层（产状/天气）+ 知识库文档管理 | 完成 |
 | 11 | 前后端全量 E2E 回归（含新功能）全部通过 + CDN 引用回归修复，重新打包 APK | 完成 |
+| 12 | 删除知识库文档时级联删除其生成的路线/学习计划（兼容旧数据）+ 同步最新前后端与 APK 到 GitHub | 完成 |
 
 ## 阶段详情
 
@@ -120,6 +121,17 @@
 - **CDN 引用回归修复（重要）**：阶段 10 编辑功能迭代时页面被还原为外网 CDN 引用（cdn.jsdelivr.net / unpkg.com），Android 断网场景会白屏/无样式。本次回归发现后，9 个页面全部改回本地 `assets/vendor/`（tailwind.global.js + lucide.min.js），并同步修复 frontend/ 与 android/app/src/main/assets/www/ 两处副本；浏览器实测 Tailwind 样式（--tw- 变量）与 Lucide 图标正常加载、零资源错误。
 - 已重新打包 APK（含以上全部功能与修复）。
 
+### 12. 知识库删除级联删除 + 同步最新产物（2026-08-13）
+
+- **删除知识库文档时级联删除其生成的路线/学习计划**：`KnowledgeService.delete_document` 补齐完整级联兜底，依次按三种来源收集 route/plan ID 再删除：
+  1. `parsed_content["generated"]` 里 auto-generate 写入的 ID；
+  2. `source_document_id` 反查（新增字段，新数据）；
+  3. 按路线名 / 任务名反查（更早的旧数据，`source_document_id` 为 NULL）。
+- 同时删除来源分析文档（AnalysisDocument）、向量 chunks、共享 PDF 文件，并 commit。
+- **数据模型与迁移**：`KnowledgeDocument / FieldRoute / StudyPlan` 新增 `source_document_id`（来源分析文档 ID），`database.py` 的 `_run_dev_migrations` 用 `ALTER TABLE ... ADD COLUMN` 为老设备轻量补列，避免丢数据。
+- **验证**：桌面临时脚本覆盖「旧数据 NULL + generated 兜底」与「新数据 source_document_id」两场景均通过；真机 `adb install -r` 后后端正常启动、`/health 200`。用户确认「非常完美」。
+- 本次已把最新 frontend / backend / android 源码与 APK（release/GeoMate-debug.apk）同步并提交到 GitHub。
+
 ## 踩坑记录
 
 - **chaquo.com 国内访问不稳**：构建须走 http://127.0.0.1:7892 代理（Clash 混合端口；socks 需 PySocks，勿用）+ pip 超时重试（build.gradle 已配 --timeout 120 --retries 10）。
@@ -128,6 +140,8 @@
 - **清华镜像覆盖 Chaquopy 索引**：会拉不到 Android wheel，需移除镜像配置。
 - **CDN 引用易在迭代中回归**：页面改版/新增功能时若从旧模板复制，可能把 `<script src="../assets/vendor/...">` 还原成外网 CDN 链接。每次改动后应全局搜索 `cdn.jsdelivr.net|unpkg.com` 确认零残留（本次已补到 9 个页面并三处同步）。
 - **桌面嵌入后端 HF 下载卡死（2026-08-13）**：桌面 EMBEDDING_BACKEND=auto 会走 sentence-transformers 加载 BAAI/bge-small-zh-v1.5，模型未缓存时从 HuggingFace 下载，国内直连超时 → /knowledge/search 卡死数十秒。解决：backend_Android/.env 设 `EMBEDDING_BACKEND=light`（与 Android 完全一致，纯 numpy 离线可用，零模型下载）。
+- **greenlet / aiosqlite 无 Android wheel（2026-08-13）**：SQLAlchemy async 依赖 greenlet C 扩展，Chaquopy 只能装 wheel → 全后端 async→sync 改造（create_engine + Session + 同步端点）。任何依赖 C 扩展且无 Android wheel 的库（greenlet、pydantic-core、PyMuPDF、chromadb）都不能用。
+- **级联删除必须兼容旧数据（2026-08-13）**：仅按新增的 `source_document_id` 匹配会漏掉早期生成的 NULL 行，必须用 `generated` ID + 名称反查兜底。
 
 ## 已知问题
 
@@ -135,8 +149,10 @@
 - HuggingFace 模型下载国内不可用：桌面若用 sentence-transformers 后端需代理或预缓存模型；默认 .env 建议 EMBEDDING_BACKEND=light。
 - 规则引擎生成的路线名/任务名带章节序号前缀（前端已清洗展示）。
 - 知识库初始为空，由用户上传 PDF 后自动填充。
+- **从 PDF 中搜索/语义检索能力仍有欠缺**：当前 LightEmbeddings（字符 bigram 特征哈希 512 维）+ LightVectorStore（SQLite + numpy 余弦相似度）为离线零依赖方案，检索相关性/召回不如真正的语义嵌入模型，遇到同义表述、跨句检索时命中质量有限（见下一步）。
 
 ## 下一步
 
-1. 真机联调最新 APK（含登录/空白状态/上传自动生成/编辑功能 + CDN 本地化修复）。
-2. 应用图标、release 签名、构建机 Python 对齐 3.11（消除 .pyc 编译警告）。
+1. **优化 PDF 语义搜索/检索能力**（当前欠缺点）：改进 LightEmbeddings 的分词与特征（如中文分词、n-gram 权重、关键词提取、BM25 混合检索、重排等），在不引入 torch/sentence-transformers 的前提下提升知识库语义检索的召回与相关度排序。
+2. 真机联调最新 APK（含登录/空白状态/上传自动生成/编辑功能 + 级联删除修复 + CDN 本地化修复）。
+3. 应用图标、release 签名、构建机 Python 对齐 3.11（消除 .pyc 编译警告）。
