@@ -61,7 +61,7 @@
     const chunk = doc.chunk_count != null ? doc.chunk_count + " 知识块" : "";
     const time = relTime(doc.created_at);
     const ready = doc.status === "ready" || doc.status === "completed";
-    return `<article class="gm-card kb-doc">
+    return `<article class="gm-card kb-doc" data-doc-id="${doc.id}">
       <div class="kb-doc-row">
         <span class="gm-icon-tile"><i data-lucide="file-text" class="w-5 h-5"></i></span>
         <div class="kb-doc-body">
@@ -72,6 +72,9 @@
             ${time ? `<span class="kb-meta-text text-ink-3">${escapeHtml(time)}</span>` : ""}
           </div>
         </div>
+        <button type="button" class="kb-del" data-kb-del="${doc.id}" aria-label="删除文档">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
         <i data-lucide="chevron-right" class="kb-doc-arrow w-5 h-5"></i>
       </div>
     </article>`;
@@ -203,8 +206,30 @@
     }
   }
 
+  // ── 删除文档（事件委托） ──
+  function bindDelete() {
+    if (!listEl) return;
+    listEl.addEventListener("click", function (e) {
+      const delBtn = e.target.closest("[data-kb-del]");
+      if (!delBtn) return;
+      e.preventDefault();
+      const id = delBtn.getAttribute("data-kb-del");
+      if (!window.confirm("确定删除这篇知识文档及其知识块吗？")) return;
+      GeoMate.deleteKnowledgeDocument(id)
+        .then(function () {
+          loadStats();
+          return loadDocs();
+        })
+        .catch(function (err) {
+          console.error("删除文档失败:", err);
+          alert("删除失败：" + ((err && err.message) || "网络错误"));
+        });
+    });
+  }
+
   async function init() {
     bindEvents();
+    bindDelete();
     await loadStats();
     await loadDocs();
   }

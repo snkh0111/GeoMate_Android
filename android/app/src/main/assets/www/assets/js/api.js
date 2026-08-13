@@ -61,6 +61,15 @@
       if (!res.ok) throw new Error(`POST ${path} → ${res.status}`);
       return res.json();
     },
+    async _put(path, body) {
+      const res = await fetch(BASE + path, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body || {}),
+      });
+      if (!res.ok) throw new Error(`PUT ${path} → ${res.status}`);
+      return res.json();
+    },
     async _patch(path, body) {
       const res = await fetch(BASE + path, {
         method: "PATCH",
@@ -147,6 +156,12 @@
     async togglePlan(planId) {
       return this._patch(`/plans/${planId}/toggle`, {});
     },
+    async updatePlan(planId, data) {
+      return this._put(`/plans/${planId}`, data);
+    },
+    async deletePlan(planId) {
+      return this._delete(`/plans/${planId}`);
+    },
     // 新建一条学习计划（"加入学习计划"按钮使用）
     async addPlan(userId, data) {
       if (!userId) userId = _userId;
@@ -160,6 +175,16 @@
     async getNotes(userId) {
       if (!userId) userId = _userId;
       return this._get(`/notes/?user_id=${userId}`);
+    },
+    async createNote(userId, data) {
+      if (!userId) userId = _userId;
+      return this._post("/notes/", { user_id: userId, ...data });
+    },
+    async updateNote(noteId, data) {
+      return this._put(`/notes/${noteId}`, data);
+    },
+    async deleteNote(noteId) {
+      return this._delete(`/notes/${noteId}`);
     },
     async seedNotes(userId) {
       return this._post(`/notes/seed?user_id=${userId || _userId}`, {});
@@ -189,11 +214,8 @@
     async getKnowledgeFilters() {
       return this._get("/knowledge/filters");
     },
-
-    // ── Field Notes ──
-    async createNote(userId, data) {
-      if (!userId) userId = _userId;
-      return this._post("/notes/", { user_id: userId, ...data });
+    async deleteKnowledgeDocument(docId) {
+      return this._delete(`/knowledge/documents/${docId}`);
     },
 
     // ── AI Chat（SSE 流式，与后端 /intelligence/chat 对齐）──

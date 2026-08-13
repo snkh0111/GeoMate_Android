@@ -286,12 +286,25 @@ body {
   transition: width 360ms cubic-bezier(0.3, 0, 0, 1);
 }
 
-/* ── 底部导航：苹果式毛玻璃（克制） ────────── */
+/* ── 底部导航：固定置底 + 苹果式毛玻璃（克制） ── */
 [data-mobile-nav="global"] {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  z-index: 50;
   background: rgba(255, 255, 255, 0.82);
   -webkit-backdrop-filter: saturate(180%) blur(16px);
   backdrop-filter: saturate(180%) blur(16px);
   box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.03);
+}
+
+/* 内容底部留出导航高度，避免遮挡（含 iPhone 安全区） */
+main {
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
 }
 
 [data-mobile-nav="global"] a {
@@ -318,8 +331,8 @@ body {
 }
 
     </style>
-    <script src="../assets/vendor/tailwind.global.js"></script>
-    <script src="../assets/vendor/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
     <style type="text/tailwindcss">
   @theme inline {
     --color-background: var(--gm-background);
@@ -517,6 +530,72 @@ body {
           button {
             -webkit-tap-highlight-color: transparent;
           }
+
+          /* ── 编辑记录浮层（苹果极简底部面板） ── */
+          .note-sheet {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+          }
+          .note-sheet.hidden {
+            display: none;
+          }
+          .note-sheet-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.32);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+          }
+          .note-sheet-panel {
+            position: relative;
+            width: 100%;
+            max-width: 28rem;
+            border-radius: 24px 24px 0 0;
+            background: var(--gm-card);
+            box-shadow: 0 -8px 32px -8px rgba(0, 0, 0, 0.18);
+            animation: gm-sheet-up 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
+          }
+          @keyframes gm-sheet-up {
+            from {
+              transform: translateY(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+          .note-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+          }
+          .note-act {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            color: var(--gm-ink-2);
+            border: 1px solid var(--gm-border);
+            background: var(--gm-card);
+            transition: background-color 160ms ease, color 160ms ease;
+          }
+          .note-act:hover {
+            background: var(--gm-surface-2);
+          }
+          .note-act-del {
+            color: var(--gm-state-error);
+          }
+          .note-act-del:hover {
+            background: rgba(255, 59, 48, 0.08);
+          }
         </style>
 
         <div class="gm-page">
@@ -551,6 +630,49 @@ body {
             <footer class="py-6 text-center">
                 <p class="text-[12px] text-ink-3">GeoMate · 威海地质野外实习助手</p>
             </footer>
+        </div>
+
+        <!-- 编辑记录浮层（苹果极简底部面板） -->
+        <div id="note-editor" class="note-sheet hidden" role="dialog" aria-modal="true" aria-label="编辑野外记录">
+            <div class="note-sheet-backdrop" data-close-note-editor></div>
+            <div class="note-sheet-panel">
+                <div class="flex items-center justify-between px-5 pt-5">
+                    <h2 class="gm-section-title">编辑记录</h2>
+                    <button type="button" data-close-note-editor aria-label="关闭" class="flex h-9 w-9 items-center justify-center rounded-full text-ink-2">
+                        <i data-lucide="x" class="h-5 w-5"></i>
+                    </button>
+                </div>
+                <form id="note-form" class="mt-4 space-y-4 px-5 pb-6">
+                    <input type="hidden" id="note-id">
+                    <div>
+                        <label for="note-point" class="mb-2 block text-[13px] font-medium text-ink-2">点位编号</label>
+                        <input id="note-point" class="gm-input" type="text" placeholder="如 D1-1">
+                    </div>
+                    <div>
+                        <label for="note-rock" class="mb-2 block text-[13px] font-medium text-ink-2">岩石类型</label>
+                        <input id="note-rock" class="gm-input" type="text" placeholder="如 花岗岩">
+                    </div>
+                    <div>
+                        <label for="note-loc" class="mb-2 block text-[13px] font-medium text-ink-2">地点</label>
+                        <input id="note-loc" class="gm-input" type="text" placeholder="如 占甲埠村采石场西侧">
+                    </div>
+                    <div>
+                        <label for="note-desc" class="mb-2 block text-[13px] font-medium text-ink-2">地质描述</label>
+                        <textarea id="note-desc" class="gm-input min-h-[96px] resize-none py-3" placeholder="记录岩性、结构、构造等观察描述"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="note-attitude" class="mb-2 block text-[13px] font-medium text-ink-2">产状（∠）</label>
+                            <input id="note-attitude" class="gm-input" type="text" placeholder="如 300°∠35°">
+                        </div>
+                        <div>
+                            <label for="note-weather" class="mb-2 block text-[13px] font-medium text-ink-2">天气</label>
+                            <input id="note-weather" class="gm-input" type="text" placeholder="如 晴">
+                        </div>
+                    </div>
+                    <button type="submit" class="gm-btn gm-btn-primary w-full">保存修改</button>
+                </form>
+            </div>
         </div>
     </main>
     <script>lucide.createIcons();</script>

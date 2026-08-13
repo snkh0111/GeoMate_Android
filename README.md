@@ -1,7 +1,7 @@
 # GeoMate — 威海地质野外实习助手（Android 版）
 
 > 面向地理科学专业的移动端地质野外实习助手。本仓库为 **Android 版**：
-> 将原 Web 版（FastAPI 后端 + H5 前端）改造为可在 Android 上运行的应用，最终目标为打包 APK。
+> 将原 Web 版（FastAPI 后端 + H5 前端）改造为可在 Android 上运行的应用，最终打包为 APK。
 
 ## 项目简介
 
@@ -10,10 +10,10 @@ GeoMate 为地质野外实习提供一体化支持：
 - 🔐 **账号登录**：首次进入需注册/登录（SHA-256 密码校验），数据按用户隔离，所有页面初始为空白状态。
 - 📄 **上传自动生成**：上传实习 PDF，一键自动生成实习路线、学习计划与知识库（离线规则引擎，无需 API Key）。
 - 📋 **实习路线**：威海经典实习路线，含教学目标、关键观察点、注意事项、所需工具，可一键加入学习计划。
-- 📖 **学习计划**：按天分组的任务清单，支持完成度跟踪、勾选完成与进度统计。
-- 🧠 **知识库**：上传实习 PDF（路线指导书、岩石手册、评分标准等），自动解析、切片、嵌入，语义检索 + 分类筛选。
+- 📖 **学习计划**：按天分组的任务清单，支持完成度跟踪、勾选完成、进度统计与**行内编辑**（改任务名/分类）。
+- 🧠 **知识库**：上传实习 PDF（路线指导书、岩石手册、评分标准等），自动解析、切片、嵌入，语义检索 + 分类筛选 + 文档管理。
+- 📝 **野外记录**：数字野簿，记录点位、岩性描述、产状、标本编号、天气；支持**编辑浮层**（产状 `300°∠35°` 格式输入，自动换算）。
 - 🤖 **AI 地质助教**：基于知识库的问答（RAG）+ Anthropic Claude 大模型流式回答（无 Key 或调用失败自动走离线规则引擎/知识库回答）。
-- 📝 **野外记录**：数字野簿，记录点位、岩性描述、产状、标本编号。
 
 ## 技术架构
 
@@ -44,8 +44,8 @@ GeoMate 为地质野外实习提供一体化支持：
 
 ### 关键设计
 
-- **Android 兼容**：移除 ChromaDB / torch / sentence-transformers 等含原生依赖的包；向量存储为 SQLite + numpy（LightVectorStore），嵌入为纯 numpy 字符 bigram 特征哈希（light_embeddings，EMBEDDING_BACKEND=auto|light|sentence-transformers 三态切换），pydantic 降级 1.x（Android 无 pydantic-core wheel），PDF 解析优先 PyMuPDF、失败回退 pypdf。
-- **离线可用**：无 API Key 时走内置规则分析器（从章节标题/地质词库提取路线、知识点、学习任务），LLM 调用失败自动降级，上传→自动生成管线离线可跑通。
+- **Android 兼容**：移除 ChromaDB / torch / sentence-transformers 等含原生依赖的包；向量存储为 SQLite + numpy（LightVectorStore），嵌入为纯 numpy 字符 bigram 特征哈希（light_embeddings，EMBEDDING_BACKEND=auto|light|sentence-transformers 三态切换，Android 自动用 light），pydantic 降级 1.x（Android 无 pydantic-core wheel），PDF 解析优先 PyMuPDF、失败回退 pypdf。
+- **离线可用**：无 API Key 时走内置规则分析器（从章节标题/地质词库提取路线、知识点、学习任务），LLM 调用失败自动降级，上传→自动生成管线离线可跑通。嵌入后端默认建议 `EMBEDDING_BACKEND=light`（纯 numpy，零模型下载；桌面用 sentence-transformers 需联网下载 HF 模型，国内易超时）。
 - **内嵌服务**：`android_bridge.py` 作为 Chaquopy 入口，在 Android 上于 `127.0.0.1:8000` 启动 FastAPI，WebView 前端直接访问，数据存于应用私有目录。
 
 ## 目录结构
@@ -95,7 +95,9 @@ cd android
 ```bash
 cd backend
 pip install -r requirements_android.txt
-cp .env.example .env   # ANTHROPIC_API_KEY 留空即可用离线规则引擎
+cp .env.example .env
+# 关键：.env 里设 EMBEDDING_BACKEND=light（纯 numpy 离线，免下载 HF 模型；否则桌面会尝试联网加载 bge 模型，国内易超时卡死）
+# ANTHROPIC_API_KEY 留空即可用离线规则引擎
 python run.py          # http://127.0.0.1:8000
 ```
 

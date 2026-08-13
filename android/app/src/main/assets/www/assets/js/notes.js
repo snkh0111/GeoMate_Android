@@ -57,7 +57,7 @@
     if (t) {
       metas.push('<span class="inline-flex items-center gap-1"><i data-lucide="clock" class="h-3.5 w-3.5"></i>' + t + "</span>");
     }
-    return `<article class="gm-card p-4">
+    return `<article class="gm-card p-4" data-note-id="${n.id}">
       <div class="gm-row items-start">
         <div class="gm-icon-tile">
           <i data-lucide="map-pin" class="h-5 w-5"></i>
@@ -73,6 +73,14 @@
           </div>` : ""}
           ${n.description ? `<p class="mt-1.5 line-clamp-2 text-[14px] leading-relaxed text-ink-2">${escapeHtml(n.description)}</p>` : ""}
           ${metas.length ? `<div class="gm-row meta-row mt-2.5 gap-3 text-[12px] text-ink-3">${metas.join("")}</div>` : ""}
+        </div>
+        <div class="note-actions">
+          <button type="button" class="note-act" data-note-edit="${n.id}" aria-label="编辑记录">
+            <i data-lucide="pencil" class="h-4 w-4"></i>
+          </button>
+          <button type="button" class="note-act note-act-del" data-note-del="${n.id}" aria-label="删除记录">
+            <i data-lucide="trash-2" class="h-4 w-4"></i>
+          </button>
         </div>
       </div>
     </article>`;
@@ -170,9 +178,93 @@
     });
   }
 
+  // ── 编辑 / 删除 ──
+  function openEditor(note) {
+    const sheet = document.getElementById("note-editor");
+    if (!sheet) return;
+    document.getElementById("note-id").value = note.id || "";
+    document.getElementById("note-point").value = note.point_number || "";
+    document.getElementById("note-rock").value = note.rock_type || "";
+    document.getElementById("note-loc").value = note.location || "";
+    document.getElementById("note-desc").value = note.description || "";
+    document.getElementById("note-attitude").value = note.attitude || "";
+    document.getElementById("note-weather").value = note.weather || "";
+    sheet.classList.remove("hidden");
+    if (window.lucide) lucide.createIcons();
+  }
+  function closeEditor() {
+    const sheet = document.getElementById("note-editor");
+    if (sheet) sheet.classList.add("hidden");
+  }
+  // 解析 "300°∠35°" → { dip_direction, dip_angle }
+  function parseAttitude(text) {
+    const m = String(text || "").match(/(\d+(?:\.\d+)?)\s*[°度]\s*[∠∡]\s*(\d+(?:\.\d+)?)\s*[°度]/);
+    if (!m) return {};
+    const dir = parseFloat(m[1]);
+    const angle = parseFloat(m[2]);
+    return {
+      dip_direction: dir >= 0 && dir <= 360 ? dir : undefined,
+      dip_angle: angle >= 0 && angle <= 90 ? angle : undefined,
+    };
+  }
+  function bindEditDelete() {
+    if (!listEl) return;
+    listEl.addEventListener("click", function (ev) {
+      const editBtn = ev.target.closest("[data-note-edit]");
+      if (editBtn) {
+        const id = Number(editBtn.getAttribute("data-note-edit"));
+        const note = notes.find(function (n) { return n.id === id; });
+        if (note) openEditor(note);
+        return;
+      }
+      const delBtn = ev.target.closest("[data-note-del]");
+      if (delBtn) {
+        const id = Number(delBtn.getAttribute("data-note-del"));
+        if (!window.confirm("确定删除这条野外记录吗？")) return;
+        GeoMate.deleteNote(id)
+          .then(load)
+          .catch(function (err) {
+            console.error("删除记录失败:", err);
+            alert("删除失败：" + ((err && err.message) || "网络错误"));
+          });
+      }
+    });
+    // 浮层关闭
+    document.querySelectorAll("[data-close-note-editor]").forEach(function (el) {
+      el.addEventListener("click", closeEditor);
+    });
+    // 保存修改
+    const form = document.getElementById("note-form");
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const id = Number(document.getElementById("note-id").value);
+        if (!id) return;
+        const data = {
+          point_number: document.getElementById("note-point").value.trim(),
+          rock_type: document.getElementById("note-rock").value.trim(),
+          location: document.getElementById("note-loc").value.trim(),
+          description: document.getElementById("note-desc").value.trim(),
+          weather: document.getElementById("note-weather").value.trim() || undefined,
+        };
+        Object.assign(data, parseAttitude(document.getElementById("note-attitude").value));
+        GeoMate.updateNote(id, data)
+          .then(function () {
+            closeEditor();
+            return load();
+          })
+          .catch(function (err) {
+            console.error("更新记录失败:", err);
+            alert("保存失败：" + ((err && err.message) || "网络错误"));
+          });
+      });
+    }
+  }
+
   async function init() {
     buildFilters();
     bindAdd();
+    bindEditDelete();
     await load();
   }
 

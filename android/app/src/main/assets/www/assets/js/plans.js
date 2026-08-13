@@ -39,7 +39,26 @@
       ? `<span class="gm-task-text gm-task-text-done text-ink-3 line-through">${escapeHtml(task.task_name)}</span>`
       : `<span class="gm-task-text gm-task-text-pending text-foreground">${escapeHtml(task.task_name)}</span>`;
     const cat = task.category ? `<span class="gm-chip shrink-0">${escapeHtml(task.category)}</span>` : "";
-    return `<div class="gm-task-row" data-plan-id="${task.id}">${check}${text}${cat}</div>`;
+    const act = `<button type="button" class="task-del" data-plan-edit="${task.id}" aria-label="编辑任务">
+      <i data-lucide="pencil" class="w-4 h-4"></i>
+    </button><button type="button" class="task-del" data-plan-del="${task.id}" aria-label="删除任务">
+      <i data-lucide="trash-2" class="w-4 h-4"></i>
+    </button>`;
+    return `<div class="gm-task-row" data-plan-id="${task.id}">${check}${text}${cat}${act}</div>`;
+  }
+
+  // ── 行内编辑态 ──
+  function editRowHtml(task) {
+    return `<div class="gm-task-row gm-task-row-edit" data-plan-id="${task.id}">
+      <div class="plan-edit-fields">
+        <input type="text" class="gm-input plan-edit-name" value="${escapeHtml(task.task_name)}" placeholder="任务名称" aria-label="任务名称">
+        <input type="text" class="gm-input plan-edit-cat" value="${escapeHtml(task.category || "")}" placeholder="分类（可选）" aria-label="任务分类">
+      </div>
+      <div class="plan-edit-actions">
+        <button type="button" class="gm-btn-ghost-sm" data-plan-edit-save="${task.id}">保存</button>
+        <button type="button" class="gm-btn-ghost-sm" data-plan-edit-cancel>取消</button>
+      </div>
+    </div>`;
   }
 
   function dayBlockHtml(day, idx) {
@@ -130,16 +149,86 @@
         GeoMate.getDailyPlans(user.id),
         GeoMate.getPlanStats(user.id).catch(function () { return null; }),
       ]);
-      render(daily || [], stats);
+      lastDaily = daily || [];
+      render(lastDaily, stats);
     } catch (e) {
       console.error("加载学习计划失败:", e);
       if (daysEl) daysEl.innerHTML = emptyHtml();
     }
   }
 
-  // ── 点击任务行：切换完成状态 ──
+  // ── 点击任务行：切换完成状态；编辑/删除按钮：行内编辑或删除 ──
+  let lastDaily = null;
+
+  // 行内编辑：把任务行替换为编辑态
+  function startEdit(planId) {
+    const daily = lastDaily || [];
+    let task = null;
+    daily.forEach(function (d) {
+      (d.items || []).forEach(function (t) { if (String(t.id) === String(planId)) task = t; });
+    });
+    if (!task) return;
+    const row = daysEl.querySelector('[data-plan-id="' + planId + '"]');
+    if (!row) return;
+    row.outerHTML = editRowHtml(task);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  // 保存行内编辑
+  function saveEdit(planId, nameInput, catInput) {
+    const data = {};
+    if (nameInput && nameInput.value.trim()) data.task_name = nameInput.value.trim();
+    if (catInput && catInput.value.trim()) data.category = catInput.value.trim();
+    if (!data.task_name && !data.category) { data.task_name = "未命名任务"; }
+    GeoMate.updatePlan(planId, data)
+      .then(load)
+      .catch(function (err) {
+        console.error("更新任务失败:", err);
+        alert("保存失败：" + ((err && err.message) || "网络错误"));
+      });
+  }
+
   if (daysEl) {
     daysEl.addEventListener("click", function (e) {
+      // 保存
+      const saveBtn = e.target.closest("[data-plan-edit-save]");
+      if (saveBtn) {
+        e.stopPropagation();
+        const id = saveBtn.getAttribute("data-plan-edit-save");
+        const row = saveBtn.closest(".gm-task-row-edit");
+        const nameInput = row && row.querySelector(".plan-edit-name");
+        const catInput = row && row.querySelector(".plan-edit-cat");
+        saveEdit(id, nameInput, catInput);
+        return;
+      }
+      // 取消
+      const cancelBtn = e.target.closest("[data-plan-edit-cancel]");
+      if (cancelBtn) {
+        e.stopPropagation();
+        load();
+        return;
+      }
+      // 编辑
+      const editBtn = e.target.closest("[data-plan-edit]");
+      if (editBtn) {
+        e.stopPropagation();
+        startEdit(editBtn.getAttribute("data-plan-edit"));
+        return;
+      }
+      // 删除
+      const delBtn = e.target.closest("[data-plan-del]");
+      if (delBtn) {
+        e.stopPropagation();
+        const id = delBtn.getAttribute("data-plan-del");
+        if (!window.confirm("确定删除这项学习任务吗？")) return;
+        GeoMate.deletePlan(id)
+          .then(load)
+          .catch(function (err) {
+            console.error("删除任务失败:", err);
+            alert("删除失败：" + ((err && err.message) || "网络错误"));
+          });
+        return;
+      }
       const row = e.target.closest("[data-plan-id]");
       if (!row) return;
       const id = row.getAttribute("data-plan-id");
